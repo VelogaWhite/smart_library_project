@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from .models import Book, BorrowingRecord
+from django.db.models import Q
 
 # --- Module 3: ค้นหาหนังสือและแสดงผล ---
 def search_books(request):
