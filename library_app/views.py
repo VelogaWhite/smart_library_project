@@ -7,7 +7,19 @@ from .models import Book, BorrowingRecord
 # --- Module 3: ค้นหาหนังสือและแสดงผล ---
 def search_books(request):
     books = Book.objects.select_related('CategoryID').all()
-    context = {'books': books}
+    query = request.GET.get('q')
+
+    if query:
+        books = books.filter(
+            Q(Title__icontains=query) |
+            Q(ISBN__icontains=query)
+        )
+
+    context = {
+        'books': books,
+        'query': query
+    }
+
     return render(request, 'library_app/search.html', context)
 
 # --- Module 4: ยืมหนังสือ (Smart Borrowing Logic) ---

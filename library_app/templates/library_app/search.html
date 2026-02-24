@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Library Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-blue-700 text-white py-4 shadow">
+        <div class="max-w-4xl mx-auto px-4">
+            <h1 class="text-2xl font-semibold">
+                Smart Library - Book Search
+            </h1>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+
+        <!-- Search Box -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <form method="GET" class="flex gap-3">
+                <input 
+                    type="text"
+                    name="q"
+                    value="{{ query|default:'' }}"
+                    placeholder="Search by Title or ISBN..."
+                    class="flex-1 border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button 
+                    type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
+                >
+                    Search
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="space-y-4">
+
+            {% if books %}
+                <p class="text-gray-600 mb-2">
+                    Found {{ books|length }} result(s)
+                </p>
+
+                {% for book in books %}
+                    <div class="bg-white p-5 rounded-lg shadow border border-gray-200">
+                        
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-800">
+                                    {{ book.Title }}
+                                </h2>
+                                <p class="text-sm text-gray-600">
+                                    ISBN: {{ book.ISBN }}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    Category: {{ book.CategoryID.CategoryName }}
+                                </p>
+                            </div>
+
+                            <div>
+                                {% if book.AvailableCopies > 0 %}
+                                    <span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full">
+                                        Available ({{ book.AvailableCopies }})
+                                    </span>
+                                {% else %}
+                                    <span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full">
+                                        Unavailable
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    </div>
+                {% endfor %}
+
+            {% else %}
+                <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600">
+                    No books found.
+                </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</body>
+</html>
