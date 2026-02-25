@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Librarian — Borrow Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-blue-700 text-white py-4 shadow">
+        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">📗 Borrow Dashboard</h1>
+                <p class="text-blue-200 text-sm mt-0.5">Librarian Panel — Issue books to members</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="{% url 'librarian_return_dashboard' %}"
+                   class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
+                    📕 Return Dashboard
+                </a>
+                <a href="{% url 'search_books' %}"
+                   class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
+                    🔍 Book Search
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- Flash Messages -->
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="px-4 py-3 rounded-md text-sm font-medium border
+                        {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-300
+                        {% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-300
+                        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-yellow-300
+                        {% else %}bg-blue-50 text-blue-800 border-blue-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Stat -->
+        <div class="bg-white rounded-lg shadow p-5 flex items-center gap-5 w-fit">
+            <div class="bg-blue-100 text-blue-600 rounded-full p-4 text-3xl">📖</div>
+            <div>
+                <p class="text-sm text-gray-500">Currently Borrowed</p>
+                <p class="text-4xl font-bold text-gray-800">{{ total_active }}</p>
+            </div>
+        </div>
+
+        <!-- ===== BORROW FORM ===== -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-1">Issue a Book to a Member</h2>
+            <p class="text-sm text-gray-400 mb-6">Select a member, pick an available book, and set the loan period.</p>
+
+            <form method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                {% csrf_token %}
+
+                <!-- Member -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Member</label>
+                    <select name="member_id" required
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Select Member —</option>
+                        {% for member in members %}
+                            <option value="{{ member.id }}">
+                                {{ member.FullName|default:member.username }}
+                                ({{ member.username }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Book -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Book</label>
+                    <select name="book_id" required
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Select Book —</option>
+                        {% for book in available_books %}
+                            <option value="{{ book.id }}">
+                                {{ book.Title }}
+                                ({{ book.AvailableCopies }} available)
+                            </option>
+                        {% empty %}
+                            <option disabled>No books available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Loan Duration -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Loan Duration</label>
+                    <select name="due_days"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="7">7 days</option>
+                        <option value="14">14 days</option>
+                        <option value="30">30 days</option>
+                    </select>
+                </div>
+
+                <!-- Submit -->
+                <div>
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
+                        ✚ Confirm Borrow
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== RECENT ACTIVE BORROWS TABLE ===== -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-5">
+                Active Borrows
+                <span class="ml-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
+                    {{ total_active }}
+                </span>
+            </h2>
+
+            {% if recent_borrows %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wide">
+                                <th class="pb-3 pr-4">Record ID</th>
+                                <th class="pb-3 pr-4">Member</th>
+                                <th class="pb-3 pr-4">Book</th>
+                                <th class="pb-3 pr-4">Borrowed On</th>
+                                <th class="pb-3">Due Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for record in recent_borrows %}
+                                <tr class="hover:bg-gray-50 {% if record.is_overdue %}bg-red-50{% endif %}">
+                                    <td class="py-3 pr-4 text-gray-400">#{{ record.id }}</td>
+                                    <td class="py-3 pr-4 font-medium text-gray-800">
+                                        {{ record.UserID.FullName|default:record.UserID.username }}
+                                    </td>
+                                    <td class="py-3 pr-4 text-gray-700">{{ record.BookID.Title }}</td>
+                                    <td class="py-3 pr-4 text-gray-500">{{ record.BorrowDate|date:"d M Y, H:i" }}</td>
+                                    <td class="py-3">
+                                        <span class="{% if record.is_overdue %}text-red-600 font-semibold{% else %}text-gray-500{% endif %}">
+                                            {{ record.DueDate|date:"d M Y" }}
+                                            {% if record.is_overdue %}
+                                                <span class="ml-1 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">Overdue</span>
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    <p class="text-5xl mb-3">📭</p>
+                    <p>No active borrows yet.</p>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Librarian — Return Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-green-700 text-white py-4 shadow">
+        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">📕 Return Dashboard</h1>
+                <p class="text-green-200 text-sm mt-0.5">Librarian Panel — Process book returns & fines</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="{% url 'librarian_borrow_dashboard' %}"
+                   class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
+                    📗 Borrow Dashboard
+                </a>
+                <a href="{% url 'search_books' %}"
+                   class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
+                    🔍 Book Search
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- Flash Messages -->
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="px-4 py-3 rounded-md text-sm font-medium border
+                        {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-300
+                        {% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-300
+                        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-yellow-300
+                        {% else %}bg-blue-50 text-blue-800 border-blue-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+                <div class="bg-yellow-100 text-yellow-600 rounded-full p-4 text-3xl">📋</div>
+                <div>
+                    <p class="text-sm text-gray-500">Pending Returns</p>
+                    <p class="text-4xl font-bold text-gray-800">{{ active_count }}</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+                <div class="bg-red-100 text-red-500 rounded-full p-4 text-3xl">⚠️</div>
+                <div>
+                    <p class="text-sm text-gray-500">Overdue Books</p>
+                    <p class="text-4xl font-bold text-red-600">{{ overdue_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ACTIVE BORROWS — PROCESS RETURNS ===== -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-1">Process a Return</h2>
+            <p class="text-sm text-gray-400 mb-6">
+                Click <strong>✓ Return</strong> on a row to mark the book as returned.
+                If the book is overdue, a fine of <strong>฿5 per day</strong> will be automatically calculated and saved.
+            </p>
+
+            {% if active_records %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wide">
+                                <th class="pb-3 pr-4">Record ID</th>
+                                <th class="pb-3 pr-4">Member</th>
+                                <th class="pb-3 pr-4">Book</th>
+                                <th class="pb-3 pr-4">Borrowed On</th>
+                                <th class="pb-3 pr-4">Due Date</th>
+                                <th class="pb-3 pr-4">Status</th>
+                                <th class="pb-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for record in active_records %}
+                                <tr class="hover:bg-gray-50 {% if record.is_overdue %}bg-red-50{% endif %}">
+                                    <td class="py-3 pr-4 text-gray-400">#{{ record.id }}</td>
+                                    <td class="py-3 pr-4 font-medium text-gray-800">
+                                        {{ record.UserID.FullName|default:record.UserID.username }}
+                                    </td>
+                                    <td class="py-3 pr-4 text-gray-700">{{ record.BookID.Title }}</td>
+                                    <td class="py-3 pr-4 text-gray-500">{{ record.BorrowDate|date:"d M Y" }}</td>
+                                    <td class="py-3 pr-4">
+                                        <span class="{% if record.is_overdue %}text-red-600 font-bold{% else %}text-gray-600{% endif %}">
+                                            {{ record.DueDate|date:"d M Y" }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 pr-4">
+                                        {% if record.is_overdue %}
+                                            <span class="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                                ⚠️ Overdue
+                                            </span>
+                                        {% else %}
+                                            <span class="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                                Active
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3">
+                                        <form method="POST"
+                                            onsubmit="return confirm('Mark \'{{ record.BookID.Title|escapejs }}\' as returned?{% if record.is_overdue %} ⚠️ This book is overdue — a fine will be calculated.{% endif %}')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="borrow_id" value="{{ record.id }}">
+                                            <button type="submit"
+                                                class="{% if record.is_overdue %}bg-orange-500 hover:bg-orange-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white text-xs font-semibold px-3 py-1.5 rounded-md transition">
+                                                ✓ Return
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    <p class="text-5xl mb-3">✅</p>
+                    <p class="font-medium">All clear! No pending returns.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== RETURN HISTORY ===== -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-5">
+                Return History
+                <span class="text-xs text-gray-400 font-normal ml-1">(last 20 records)</span>
+            </h2>
+
+            {% if returned_records %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wide">
+                                <th class="pb-3 pr-4">Record ID</th>
+                                <th class="pb-3 pr-4">Member</th>
+                                <th class="pb-3 pr-4">Book</th>
+                                <th class="pb-3 pr-4">Borrowed</th>
+                                <th class="pb-3 pr-4">Returned</th>
+                                <th class="pb-3">Fine</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for record in returned_records %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-3 pr-4 text-gray-400">#{{ record.id }}</td>
+                                    <td class="py-3 pr-4 font-medium text-gray-800">
+                                        {{ record.UserID.FullName|default:record.UserID.username }}
+                                    </td>
+                                    <td class="py-3 pr-4 text-gray-700">{{ record.BookID.Title }}</td>
+                                    <td class="py-3 pr-4 text-gray-500">{{ record.BorrowDate|date:"d M Y" }}</td>
+                                    <td class="py-3 pr-4 text-gray-500">{{ record.ReturnDate|date:"d M Y, H:i" }}</td>
+                                    <td class="py-3">
+                                        {% for fine in record.fine_set.all %}
+                                            <span class="bg-orange-100 text-orange-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                                ฿{{ fine.FineAmount }} — {{ fine.Status }}
+                                            </span>
+                                        {% empty %}
+                                            <span class="text-gray-400 text-xs">No fine</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-10 text-gray-400">
+                    <p>No return history yet.</p>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>

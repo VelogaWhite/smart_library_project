@@ -9,13 +9,19 @@
 <body class="bg-gray-100 min-h-screen">
 
     <!-- Header -->
-    <div class="bg-blue-700 text-white py-4 shadow">
-        <div class="max-w-4xl mx-auto px-4">
-            <h1 class="text-2xl font-semibold">
-                Smart Library - Book Search
-            </h1>
-        </div>
+<div class="max-w-4xl mx-auto px-4 flex justify-between items-center">
+    <h1 class="text-2xl font-semibold">
+        Smart Library - Book Search
+    </h1>
+    <div class="flex gap-2">
+        <a href="{% url 'librarian_borrow_dashboard' %}" class="bg-blue-500 hover:bg-blue-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
+            📗 Borrow Dashboard
+        </a>
+        <a href="{% url 'librarian_return_dashboard' %}" class="bg-green-500 hover:bg-green-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
+            📕 Return Dashboard
+        </a>
     </div>
+</div>
 
     <div class="max-w-4xl mx-auto px-4 py-8">
 

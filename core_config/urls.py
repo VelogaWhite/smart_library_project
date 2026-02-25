@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path , include
 from library_app import views  # <-- Import views จากแอป library_app มาโดยตรง
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     
     # --- เส้นทางทั้งหมดของระบบห้องสมุด ---
     
@@ -15,4 +16,8 @@ urlpatterns = [
     
     # Module 5: รับคืนหนังสือ
     path('return/<int:borrow_id>/', views.return_book, name='return_book'),
+   
+    path('librarian/borrow/', views.librarian_borrow_dashboard, name='librarian_borrow_dashboard'),
+    
+path('librarian/return/', views.librarian_return_dashboard, name='librarian_return_dashboard'),
 ]
