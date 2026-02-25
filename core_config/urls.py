@@ -17,7 +17,9 @@ urlpatterns = [
     # Module 5: รับคืนหนังสือ
     path('return/<int:borrow_id>/', views.return_book, name='return_book'),
    
+    # Module 6: แดชบอร์ดยืมหนังสือ
     path('librarian/borrow/', views.librarian_borrow_dashboard, name='librarian_borrow_dashboard'),
     
-path('librarian/return/', views.librarian_return_dashboard, name='librarian_return_dashboard'),
+    # Module 7: แดชบอร์ดรรับคืนหนังสือ
+    path('librarian/return/', views.librarian_return_dashboard, name='librarian_return_dashboard'),
 ]
