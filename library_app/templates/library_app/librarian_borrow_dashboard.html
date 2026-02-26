@@ -14,7 +14,7 @@
         <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold">📗 Borrow Dashboard</h1>
-                <p class="text-blue-200 text-sm mt-0.5">Librarian Panel — Issue books to members</p>
+                <p class="text-blue-200 text-sm mt-0.5">Librarian Panel — Manage Borrow Requests</p>
             </div>
             
             <div class="flex items-center gap-4">
@@ -58,82 +58,90 @@
         {% endif %}
 
         <!-- Stat -->
-        <div class="bg-white rounded-lg shadow p-5 flex items-center gap-5 w-fit">
-            <div class="bg-blue-100 text-blue-600 rounded-full p-4 text-3xl">📖</div>
-            <div>
-                <p class="text-sm text-gray-500">Currently Borrowed</p>
-                <p class="text-4xl font-bold text-gray-800">{{ total_active }}</p>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-lg shadow p-5 flex items-center gap-5">
+                <div class="bg-orange-100 text-orange-600 rounded-full p-4 text-3xl">📥</div>
+                <div>
+                    <p class="text-sm text-gray-500">Pending Requests</p>
+                    <p class="text-4xl font-bold text-gray-800">{{ total_pending }}</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5 flex items-center gap-5">
+                <div class="bg-blue-100 text-blue-600 rounded-full p-4 text-3xl">📖</div>
+                <div>
+                    <p class="text-sm text-gray-500">Currently Borrowed</p>
+                    <p class="text-4xl font-bold text-gray-800">{{ total_active }}</p>
+                </div>
             </div>
         </div>
 
-        <!-- ===== BORROW FORM ===== -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-1">Issue a Book to a Member</h2>
-            <p class="text-sm text-gray-400 mb-6">Select a member, pick an available book, and set the loan period.</p>
+        <!-- ===== PENDING REQUESTS TABLE ===== -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-orange-400">
+            <h2 class="text-xl font-semibold text-gray-800 mb-5 flex items-center gap-2">
+                Pending Borrow Requests
+                {% if total_pending > 0 %}
+                    <span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                        {{ total_pending }} New
+                    </span>
+                {% endif %}
+            </h2>
 
-            <form method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                {% csrf_token %}
-
-                <!-- Member -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Member</label>
-                    <select name="member_id" required
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">— Select Member —</option>
-                        {% for member in members %}
-                            <option value="{{ member.id }}">
-                                {{ member.FullName|default:member.username }}
-                                ({{ member.username }})
-                            </option>
-                        {% endfor %}
-                    </select>
+            {% if pending_requests %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wide">
+                                <th class="pb-3 pr-4">Request ID</th>
+                                <th class="pb-3 pr-4">Member</th>
+                                <th class="pb-3 pr-4">Book Title</th>
+                                <th class="pb-3 pr-4">Requested On</th>
+                                <th class="pb-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for req in pending_requests %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-3 pr-4 text-gray-400">#{{ req.id }}</td>
+                                    <td class="py-3 pr-4 font-medium text-gray-800">
+                                        {{ req.UserID.FullName|default:req.UserID.username }}
+                                    </td>
+                                    <td class="py-3 pr-4 text-blue-700 font-medium">{{ req.BookID.Title }}</td>
+                                    <td class="py-3 pr-4 text-gray-500">{{ req.BorrowDate|date:"d M Y, H:i" }}</td>
+                                    <td class="py-3 text-right">
+                                        <div class="flex justify-end gap-2">
+                                            <!-- ปุ่ม Approve -->
+                                            <form method="POST" action="{% url 'approve_borrow' req.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-xs font-semibold shadow-sm transition">
+                                                    ✓ Approve
+                                                </button>
+                                            </form>
+                                            <!-- ปุ่ม Reject -->
+                                            <form method="POST" action="{% url 'reject_borrow' req.id %}" onsubmit="return confirm('Are you sure you want to reject this request?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold shadow-sm transition">
+                                                    ✕ Reject
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-
-                <!-- Book -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Book</label>
-                    <select name="book_id" required
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">— Select Book —</option>
-                        {% for book in available_books %}
-                            <option value="{{ book.id }}">
-                                {{ book.Title }}
-                                ({{ book.AvailableCopies }} available)
-                            </option>
-                        {% empty %}
-                            <option disabled>No books available</option>
-                        {% endfor %}
-                    </select>
+            {% else %}
+                <div class="text-center py-8 text-gray-400">
+                    <p class="text-4xl mb-3">☕</p>
+                    <p>No pending requests right now. Relax!</p>
                 </div>
-
-                <!-- Loan Duration -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Loan Duration</label>
-                    <select name="due_days"
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="7">7 days</option>
-                        <option value="14">14 days</option>
-                        <option value="30">30 days</option>
-                    </select>
-                </div>
-
-                <!-- Submit -->
-                <div>
-                    <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
-                        ✚ Confirm Borrow
-                    </button>
-                </div>
-            </form>
+            {% endif %}
         </div>
 
         <!-- ===== RECENT ACTIVE BORROWS TABLE ===== -->
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold text-gray-800 mb-5">
                 Active Borrows
-                <span class="ml-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
-                    {{ total_active }}
-                </span>
             </h2>
 
             {% if recent_borrows %}

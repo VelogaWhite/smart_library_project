@@ -9,7 +9,7 @@
 <body class="bg-gray-100 min-h-screen">
 
     <!-- Header -->
-<div class="bg-white shadow-sm mb-6">
+    <div class="bg-white shadow-sm mb-6">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-2xl font-semibold text-gray-800">
                 📚 Smart Library - Book Search
@@ -54,6 +54,21 @@
 
     <div class="max-w-4xl mx-auto px-4 py-8">
 
+        <!-- Flash Messages -->
+        {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for message in messages %}
+                    <div class="px-4 py-3 rounded-md text-sm font-medium border
+                        {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-300
+                        {% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-300
+                        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-yellow-300
+                        {% else %}bg-blue-50 text-blue-800 border-blue-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <!-- Search Box -->
         <div class="bg-white p-6 rounded-lg shadow mb-6">
             <form method="GET" class="flex gap-3">
@@ -97,13 +112,21 @@
                                 </p>
                             </div>
 
-                            <div>
+                            <div class="flex flex-col items-end gap-2">
                                 {% if book.AvailableCopies > 0 %}
-                                    <span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full">
+                                    <span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full text-center">
                                         Available ({{ book.AvailableCopies }})
                                     </span>
+                                    
+                                    <!-- ปุ่มกดส่งคำร้องให้ Member -->
+                                    {% if user.is_authenticated and user.Role == 'Member' %}
+                                    <a href="{% url 'borrow_book' book.id %}" onclick="return confirm('ยืนยันส่งคำร้องขอยืมหนังสือ {{ book.Title }} ใช่หรือไม่?');" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2 rounded shadow transition">
+                                        📨 Request Borrow
+                                    </a>
+                                    {% endif %}
+                                    
                                 {% else %}
-                                    <span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full">
+                                    <span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full text-center">
                                         Unavailable
                                     </span>
                                 {% endif %}
