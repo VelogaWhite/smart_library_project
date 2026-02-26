@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Smart Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ตัวช่วยแต่ง Form ของ Django แบบอัตโนมัติ */
+        form p { margin-bottom: 1rem; }
+        form label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        form input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; outline: none; }
+        form input:focus { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+        .helptext { display: block; font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+        .errorlist { color: #ef4444; font-size: 0.875rem; list-style-type: disc; padding-left: 1rem; margin-top: 0.25rem; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center py-10">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 border-green-500">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Create an Account</h1>
+            <p class="text-gray-500 mt-1 text-sm">Join the library as a Member</p>
+        </div>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-md transition duration-200 mt-6">
+                Register
+            </button>
+        </form>
+
+        <p class="text-center text-sm text-gray-600 mt-6">
+            Already have an account? 
+            <a href="{% url 'login' %}" class="text-green-600 hover:underline font-semibold">Login here</a>
+        </p>
+    </div>
+
+</body>
+</html>

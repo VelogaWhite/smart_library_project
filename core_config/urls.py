@@ -6,6 +6,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
     
+    # เพิ่มบรรทัดนี้สำหรับหน้าสมัครสมาชิก
+    path('register/', views.register, name='register'),
+    
     # --- เพิ่มบรรทัดนี้ เพื่อให้หน้าแรก (/) ชี้ไปที่หน้าค้นหาหนังสือ ---
     path('', views.search_books, name='home'),
     

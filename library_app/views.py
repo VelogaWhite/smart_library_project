@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Book, BorrowingRecord , Fine ,User
 from django.db.models import Q
+from .forms import MemberRegistrationForm
+
 
 # --- Module 3: ค้นหาหนังสือและแสดงผล ---
 def search_books(request):
@@ -221,3 +223,18 @@ def librarian_return_dashboard(request):
         'overdue_count':    sum(1 for r in active_records if r.is_overdue),
     }
     return render(request, 'library_app/librarian_return_dashboard.html', context)
+
+# --- Module 8: สมัครสมาชิก (Register) ---
+def register(request):
+    if request.method == 'POST':
+        form = MemberRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.Role = 'Member'  # บังคับให้คนที่สมัครใหม่เป็น Member เสมอ
+            user.save()
+            messages.success(request, 'Account created successfully! You can now login.')
+            return redirect('login') # สมัครเสร็จให้เด้งไปหน้า login
+    else:
+        form = MemberRegistrationForm()
+    
+    return render(request, 'registration/register.html', {'form': form})
