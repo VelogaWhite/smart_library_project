@@ -76,6 +76,24 @@ WSGI_APPLICATION = 'core_config.wsgi.application'
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# Patch สำหรับ mssql-django ให้รองรับ SQL Server v17 (2025/Azure)
+try:
+    from mssql.base import DatabaseWrapper
+    from django.db.utils import NotSupportedError
+    
+    _original_func = DatabaseWrapper.sql_server_version.func
+
+    def _patched_func(self):
+        try:
+            return _original_func(self)
+        except NotSupportedError as e:
+            if 'SQL Server v' in str(e):
+                return 16 # บังคับให้ใช้การทำงานแบบเวอร์ชัน 16 (2022) แทน
+            raise
+
+    DatabaseWrapper.sql_server_version.func = _patched_func
+except Exception:
+    pass
 
 DB_TYPE = os.getenv('DB_TYPE', 'sqlite3').upper()
 
