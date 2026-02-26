@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,17 +74,20 @@ WSGI_APPLICATION = 'core_config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
 DB_TYPE = os.getenv('DB_TYPE', 'sqlite3').upper()
 
 if DB_TYPE == 'MARIADB':
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',  # ใช้ backend mysql สำหรับ MariaDB ได้
-            'NAME': 'library_db',
-            'USER': 'your_mariadb_user',
-            'PASSWORD': 'your_password',
-            'HOST': 'localhost',
-            'PORT': '3306',
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': env('MARIADB_NAME', default='library_db'),
+            'USER': env('MARIADB_USER', default='root'),
+            'PASSWORD': env('MARIADB_PASSWORD', default=''),
+            'HOST': env('MARIADB_HOST', default='127.0.0.1'),
+            'PORT': env('MARIADB_PORT', default='3306'),
             'OPTIONS': {
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             },
@@ -92,27 +96,25 @@ if DB_TYPE == 'MARIADB':
 elif DB_TYPE == 'MSSQL':
     DATABASES = {
         'default': {
-            'ENGINE': 'mssql',  # ใช้ mssql-django
-            'NAME': 'library_db',
-            'USER': 'your_mssql_user',
-            'PASSWORD': 'your_password',
-            'HOST': 'localhost',
-            'PORT': '1433',
+            'ENGINE': 'mssql',
+            'NAME': env('MSSQL_NAME', default='library_db'),
+            'USER': env('MSSQL_USER', default=''),
+            'PASSWORD': env('MSSQL_PASSWORD', default=''),
+            'HOST': env('MSSQL_HOST', default='localhost'),
+            'PORT': env('MSSQL_PORT', default=''),
             'OPTIONS': {
-                'driver': 'ODBC Driver 18 for SQL Server',  # ระบุชื่อ Driver ที่ติดตั้งในเครื่อง
-                'extra_params': 'TrustServerCertificate=yes;',  # เพิ่มพารามิเตอร์สำหรับเชื่อมต่อแบบไม่ตรวจสอบใบรับรอง SSL
+                'driver': env('MSSQL_DRIVER', default='ODBC Driver 17 for SQL Server'),
+                'extra_params': 'TrustServerCertificate=yes;Encrypt=yes;',
             },
         }
     }
-else:
-    # ค่าเดิมจากไฟล์ settings.py ของคุณ
+else: # Default เป็น SQLITE
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
