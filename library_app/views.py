@@ -238,3 +238,25 @@ def register(request):
         form = MemberRegistrationForm()
     
     return render(request, 'registration/register.html', {'form': form})
+
+from .models import Book, BorrowingRecord, Fine, User, Category  # ตรวจสอบให้แน่ใจว่ามี Category
+
+# เพิ่มฟังก์ชัน add_book
+@login_required
+def add_book(request):
+    # อนุญาตเฉพาะ Librarian และต้องเป็น POST request เท่านั้น
+    if request.method == 'POST' and request.user.Role == 'Librarian':
+        category = get_object_or_404(Category, id=request.POST.get('CategoryID'))
+        
+        # สร้างหนังสือใหม่ลง Database
+        Book.objects.create(
+            Title=request.POST.get('Title'),
+            CategoryID=category,
+            AuthorName=request.POST.get('AuthorName'),
+            ISBN=request.POST.get('ISBN'),
+            TotalCopies=request.POST.get('TotalCopies'),
+            AvailableCopies=request.POST.get('AvailableCopies')
+        )
+        return redirect('search_books')
+        
+    return redirect('search_books')
