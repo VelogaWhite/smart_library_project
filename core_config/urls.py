@@ -12,6 +12,8 @@ urlpatterns = [
     # --- เพิ่มบรรทัดนี้ เพื่อให้หน้าแรก (/) ชี้ไปที่หน้าค้นหาหนังสือ ---
     path('', views.search_books, name='home'),
     
+    # เพิ่ม path สำหรับ add_bookpython manage.py test functional_tests.tests -v
+    path('add_book/', views.add_book, name='add_book'),
     # --- เส้นทางทั้งหมดของระบบห้องสมุด ---\n    
     # Module 3: ค้นหาหนังสือและแสดงผล
     path('search/', views.search_books, name='search_books'),
