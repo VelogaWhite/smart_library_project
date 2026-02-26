@@ -11,20 +11,31 @@
 
     <!-- Header -->
     <div class="bg-green-700 text-white py-4 shadow">
-        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+        <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold">📕 Return Dashboard</h1>
                 <p class="text-green-200 text-sm mt-0.5">Librarian Panel — Process book returns & fines</p>
             </div>
-            <div class="flex gap-3">
-                <a href="{% url 'librarian_borrow_dashboard' %}"
-                   class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
-                    📗 Borrow Dashboard
-                </a>
-                <a href="{% url 'search_books' %}"
-                   class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">
-                    🔍 Book Search
-                </a>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex gap-3">
+                    <a href="{% url 'librarian_borrow_dashboard' %}" class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">📗 Borrow Dashboard</a>
+                    <a href="{% url 'search_books' %}" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-2 rounded-md transition">🔍 Book Search</a>
+                </div>
+                
+                <div class="flex items-center gap-3 pl-4 border-l border-green-400">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold">{{ user.FullName|default:user.username }}</p>
+                        <p class="text-xs text-green-200">{{ user.Role }}</p>
+                    </div>
+                    <div class="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center font-bold text-lg shadow-inner uppercase">
+                        {{ user.username|make_list|first }}
+                    </div>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-red-500 hover:bg-red-400 text-white text-sm px-3 py-1.5 rounded-md transition font-medium">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

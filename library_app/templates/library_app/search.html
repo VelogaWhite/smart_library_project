@@ -9,19 +9,48 @@
 <body class="bg-gray-100 min-h-screen">
 
     <!-- Header -->
-<div class="max-w-4xl mx-auto px-4 flex justify-between items-center">
-    <h1 class="text-2xl font-semibold">
-        Smart Library - Book Search
-    </h1>
-    <div class="flex gap-2">
-        <a href="{% url 'librarian_borrow_dashboard' %}" class="bg-blue-500 hover:bg-blue-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
-            📗 Borrow Dashboard
-        </a>
-        <a href="{% url 'librarian_return_dashboard' %}" class="bg-green-500 hover:bg-green-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
-            📕 Return Dashboard
-        </a>
+<div class="bg-white shadow-sm mb-6">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-semibold text-gray-800">
+                📚 Smart Library - Book Search
+            </h1>
+            
+            <div class="flex items-center gap-4">
+                {% if user.Role == 'Librarian' %}
+                <div class="flex gap-2">
+                    <a href="{% url 'librarian_borrow_dashboard' %}" class="bg-blue-500 hover:bg-blue-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
+                        📗 Borrow Dashboard
+                    </a>
+                    <a href="{% url 'librarian_return_dashboard' %}" class="bg-green-500 hover:bg-green-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
+                        📕 Return Dashboard
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if user.is_authenticated %}
+                <div class="flex items-center gap-3 pl-4 border-l border-gray-300">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold text-gray-800">{{ user.FullName|default:user.username }}</p>
+                        <p class="text-xs text-gray-500">{{ user.Role }}</p>
+                    </div>
+                    <div class="h-10 w-10 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-bold text-lg uppercase">
+                        {{ user.username|make_list|first }}
+                    </div>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1.5 rounded-md transition font-medium">Logout</button>
+                    </form>
+                </div>
+                
+                {% else %}
+                <div class="flex items-center gap-3 pl-4 border-l border-gray-300">
+                    <a href="{% url 'login' %}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition">Login</a>
+                    <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition font-medium shadow-sm">Sign Up</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-</div>
 
     <div class="max-w-4xl mx-auto px-4 py-8">
 
