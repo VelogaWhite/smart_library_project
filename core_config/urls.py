@@ -6,8 +6,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
     
-    # --- เส้นทางทั้งหมดของระบบห้องสมุด ---
+    # --- เพิ่มบรรทัดนี้ เพื่อให้หน้าแรก (/) ชี้ไปที่หน้าค้นหาหนังสือ ---
+    path('', views.search_books, name='home'),
     
+    # --- เส้นทางทั้งหมดของระบบห้องสมุด ---\n    
     # Module 3: ค้นหาหนังสือและแสดงผล
     path('search/', views.search_books, name='search_books'),
     
