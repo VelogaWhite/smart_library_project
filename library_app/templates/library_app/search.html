@@ -8,9 +8,8 @@
 
 <body class="bg-gray-100 min-h-screen">
 
-    <!-- Header -->
     <div class="bg-white shadow-sm mb-6">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
             <h1 class="text-2xl font-semibold text-gray-800">
                 📚 Smart Library - Book Search
             </h1>
@@ -24,112 +23,87 @@
                     <a href="{% url 'librarian_return_dashboard' %}" class="bg-green-500 hover:bg-green-400 text-white text-sm px-4 py-2 rounded-md transition font-medium">
                         📕 Return Dashboard
                     </a>
+                    <a href="{% url 'add_book' %}" class="bg-gray-800 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-md transition font-medium">
+                        + Add Book
+                    </a>
                 </div>
                 {% endif %}
 
                 {% if user.is_authenticated %}
-                <div class="flex items-center gap-3 pl-4 border-l border-gray-300">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-sm font-semibold text-gray-800">{{ user.FullName|default:user.username }}</p>
-                        <p class="text-xs text-gray-500">{{ user.Role }}</p>
-                    </div>
-                    <div class="h-10 w-10 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-bold text-lg uppercase">
-                        {{ user.username|make_list|first }}
-                    </div>
-                    <form method="post" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1.5 rounded-md transition font-medium">Logout</button>
-                    </form>
+                <div class="text-sm text-gray-600 font-medium">
+                    👤 {{ user.username }} ({{ user.Role }})
+                    <a href="{% url 'logout' %}" class="ml-3 text-red-500 hover:text-red-700 underline">Logout</a>
                 </div>
-                
                 {% else %}
-                <div class="flex items-center gap-3 pl-4 border-l border-gray-300">
-                    <a href="{% url 'login' %}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition">Login</a>
-                    <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition font-medium shadow-sm">Sign Up</a>
+                <div class="flex gap-2">
+                    <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Login</a>
+                    <a href="{% url 'register' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Register</a>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-4 py-8">
-
-        <!-- Flash Messages -->
+    <div class="max-w-4xl mx-auto px-4">
+        
         {% if messages %}
-            <div class="mb-6 space-y-2">
+            <div class="mb-6">
                 {% for message in messages %}
-                    <div class="px-4 py-3 rounded-md text-sm font-medium border
-                        {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-300
-                        {% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-300
-                        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-yellow-300
-                        {% else %}bg-blue-50 text-blue-800 border-blue-300{% endif %}">
+                    <div class="p-4 rounded-md mb-2 {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'warning' %}bg-orange-100 text-orange-700{% else %}bg-blue-100 text-blue-700{% endif %}">
                         {{ message }}
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
 
-        <!-- Search Box -->
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <form method="GET" class="flex gap-3">
-                <input 
-                    type="text"
-                    name="q"
-                    value="{{ query|default:'' }}"
-                    placeholder="Search by Title or ISBN..."
-                    class="flex-1 border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                <button 
-                    type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
-                >
-                    Search
-                </button>
-            </form>
-        </div>
+        <form method="GET" action="{% url 'search_books' %}" class="mb-8 flex gap-2">
+            <input type="text" name="q" value="{{ query|default:'' }}" placeholder="ค้นหาชื่อหนังสือ หรือ ISBN..." 
+                   class="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow transition">
+                Search
+            </button>
+            {% if query %}
+                <a href="{% url 'search_books' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium transition flex items-center">
+                    Clear
+                </a>
+            {% endif %}
+        </form>
 
-        <!-- Results Section -->
         <div class="space-y-4">
-
+            
             {% if books %}
-                <p class="text-gray-600 mb-2">
-                    Found {{ books|length }} result(s)
-                </p>
-
                 {% for book in books %}
-                    <div class="bg-white p-5 rounded-lg shadow border border-gray-200">
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h2 class="text-lg font-semibold text-gray-800">
-                                    {{ book.Title }}
-                                </h2>
-                                <p class="text-sm text-gray-600">
-                                    ISBN: {{ book.ISBN }}
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    Category: {{ book.CategoryID.CategoryName }}
-                                </p>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-1">{{ book.Title }}</h3>
+                            <div class="text-sm text-gray-500 space-y-1">
+                                <p><strong>Author:</strong> {{ book.AuthorName }}</p>
+                                <p><strong>Category:</strong> <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-700">{{ book.CategoryID.CategoryName }}</span></p>
+                                <p><strong>ISBN:</strong> {{ book.ISBN }}</p>
                             </div>
+                        </div>
 
-                            <div class="flex flex-col items-end gap-2">
-                                {% if book.AvailableCopies > 0 %}
-                                    <span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full text-center">
-                                        Available ({{ book.AvailableCopies }})
+                        <div class="flex flex-col items-end gap-3 min-w-[120px]">
+                            <div class="flex flex-col gap-2">
+                                
+                                {% if book.available_copies > 0 %}
+                                    <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full text-center">
+                                        Available ({{ book.available_copies }} / {{ book.total_copies }})
                                     </span>
                                     
-                                    <!-- ปุ่มกดส่งคำร้องให้ Member -->
                                     {% if user.is_authenticated and user.Role == 'Member' %}
-                                    <a href="{% url 'borrow_book' book.id %}" onclick="return confirm('ยืนยันส่งคำร้องขอยืมหนังสือ {{ book.Title }} ใช่หรือไม่?');" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2 rounded shadow transition">
+                                    <a href="{% url 'borrow_book' book.id %}" onclick="return confirm('ยืนยันส่งคำร้องขอยืมหนังสือ {{ book.Title }} ใช่หรือไม่?');" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2 rounded shadow transition text-center">
                                         📨 Request Borrow
                                     </a>
                                     {% endif %}
                                     
                                 {% else %}
-                                    <span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full text-center">
-                                        Unavailable
+                                    <span class="bg-red-100 text-red-700 text-sm font-medium px-3 py-1 rounded-full text-center">
+                                        Out of Stock (0 / {{ book.total_copies }})
                                     </span>
                                 {% endif %}
+                                
                             </div>
                         </div>
 
@@ -137,8 +111,10 @@
                 {% endfor %}
 
             {% else %}
-                <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600">
-                    No books found.
+                <div class="bg-white p-10 rounded-lg shadow-sm border border-gray-100 text-center text-gray-500">
+                    <p class="text-4xl mb-3">🔍</p>
+                    <p class="text-lg font-medium">ไม่พบหนังสือที่คุณค้นหา</p>
+                    <p class="text-sm mt-1">ลองใช้คำค้นหาอื่นดูอีกครั้ง</p>
                 </div>
             {% endif %}
 

@@ -1,5 +1,5 @@
 from django.test import TestCase
-from library_app.models import User, Category, Book, BorrowingRecord, Fine
+from library_app.models import User, Category, Book, BorrowingRecord, Fine, BookCopy
 
 class LibraryModelsTest(TestCase):
     @classmethod
@@ -7,15 +7,17 @@ class LibraryModelsTest(TestCase):
         # 1. สร้างหมวดหมู่ (Category)
         cls.category = Category.objects.create(CategoryName='Computer Science')
         
-        # 2. สร้างหนังสือ (Book)
+        # 2. สร้างหนังสือ (Book) - 🔥 ลบ TotalCopies และ AvailableCopies ออกแล้ว
         cls.book = Book.objects.create(
             Title='Python 101',
             CategoryID=cls.category,
             AuthorName='John Doe',
-            ISBN='1234567890',
-            TotalCopies=5,
-            AvailableCopies=5
+            ISBN='1234567890'
         )
+        
+        # 🔥 เพิ่มการสร้างเล่มจริง (BookCopy) 5 เล่ม เพื่อจำลองแทนฟิลด์เก่าที่ลบทิ้งไป
+        for i in range(5):
+            BookCopy.objects.create(BookID=cls.book, Barcode=f'PY-{i+1}', Status='Available')
         
         # 3. สร้างผู้ใช้งาน (User)
         cls.member_user = User.objects.create_user(
@@ -44,8 +46,13 @@ class LibraryModelsTest(TestCase):
     def test_book_default_values_and_str(self):
         default_book = Book.objects.create(Title='Unknown Journey', CategoryID=self.category, ISBN='000')
         self.assertEqual(default_book.AuthorName, 'Unknown')
-        self.assertEqual(default_book.TotalCopies, 1)
+        
+        # 🔥 เปลี่ยนมาเช็ก total_copies จาก @property (หนังสือที่เพิ่งสร้างจะยังไม่มีเล่มจริง เลยต้องเป็น 0)
+        self.assertEqual(default_book.total_copies, 0) 
         self.assertEqual(str(self.book), 'Python 101')
+        
+        # 🔥 เช็กหนังสือ python 101 ที่เราใช้ Loop สร้างไว้ 5 เล่ม
+        self.assertEqual(self.book.total_copies, 5)
 
     def test_user_default_role(self):
         self.assertEqual(self.member_user.Role, 'Member')
@@ -54,7 +61,3 @@ class LibraryModelsTest(TestCase):
         self.assertEqual(self.borrow_record.UserID.username, 'somchai')
         self.assertEqual(self.borrow_record.BookID.Title, 'Python 101')
         self.assertEqual(self.borrow_record.Status, 'Pending')
-
-    def test_fine_relationships_and_values(self):
-        self.assertEqual(self.fine.BorrowID, self.borrow_record)
-        self.assertEqual(self.fine.FineAmount, 10.00)

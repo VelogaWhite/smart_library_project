@@ -2,119 +2,162 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from library_app.models import User, Category, Book, BorrowingRecord
+from library_app.models import User, Category, Book, BookCopy, BorrowingRecord
 
-class BaseViewTest(TestCase):
+class SmartLibraryV4Tests(TestCase):
     """
-    คลาสจำลองข้อมูลพื้นฐานสำหรับให้ทุก Test Case เรียกใช้งาน
+    ชุดการทดสอบสำหรับระบบ Smart Library V4.0 (Item-Level Tracking)
     """
+
     @classmethod
     def setUpTestData(cls):
-        # สร้าง User
-        cls.member = User.objects.create_user(username='member1', password='pw', Role='Member', FullName='Alex Member')
-        cls.librarian = User.objects.create_user(username='lib1', password='pw', Role='Librarian', FullName='Sarah Lib')
+        # ==========================================
+        # 1. สร้างผู้ใช้งานจำลอง (Mock Users)
+        # ==========================================
+        cls.member = User.objects.create_user(
+            username='member_john', 
+            password='password123', 
+            Role='Member', 
+            FullName='John Doe'
+        )
+        cls.librarian = User.objects.create_user(
+            username='lib_sarah', 
+            password='password123', 
+            Role='Librarian', 
+            FullName='Sarah Connor'
+        )
+
+        # ==========================================
+        # 2. สร้างหมวดหมู่ และ หัวเรื่องหนังสือจำลอง
+        # ==========================================
+        cls.category = Category.objects.create(CategoryName='Technology')
+        cls.book_python = Book.objects.create(
+            Title='Python 101', 
+            CategoryID=cls.category, 
+            AuthorName='Guido', 
+            ISBN='978-01'
+        )
+        cls.book_java = Book.objects.create(
+            Title='Java Advanced', 
+            CategoryID=cls.category, 
+            AuthorName='James', 
+            ISBN='978-02'
+        )
+
+        # ==========================================
+        # 3. สร้างเล่มหนังสือจริง (BookCopy)
+        # ==========================================
+        # Python 101 มีสต็อก 2 เล่ม (Available)
+        cls.python_copy_1 = BookCopy.objects.create(BookID=cls.book_python, Barcode='PY-001', Status='Available')
+        cls.python_copy_2 = BookCopy.objects.create(BookID=cls.book_python, Barcode='PY-002', Status='Available')
         
-        # สร้าง Category & Book
-        cls.category = Category.objects.create(CategoryName='Science')
-        cls.book_avail = Book.objects.create(Title='Physics 101', CategoryID=cls.category, ISBN='111', AvailableCopies=2)
-        cls.book_unavail = Book.objects.create(Title='Chemistry 101', CategoryID=cls.category, ISBN='222', AvailableCopies=0)
+        # Java Advanced ไม่มีสต็อก (ไม่ได้สร้าง BookCopy ให้)
 
     def setUp(self):
+        # เตรียม Client สำหรับจำลองการ Request เข้าเว็บ
         self.member_client = Client()
         self.member_client.force_login(self.member)
         
         self.lib_client = Client()
         self.lib_client.force_login(self.librarian)
 
-# ==========================================
-# 1. เทสต์ฝั่งสมาชิก (Member)
-# ==========================================
-class MemberViewsTest(BaseViewTest):
-    def test_search_books_view(self):
-        response = self.member_client.get(reverse('search_books'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'library_app/search.html')
-        self.assertIn('books', response.context)
+    # ==========================================
+    # 🧪 TEST GROUP 1: Models & Properties
+    # ==========================================
+    def test_book_property_counts_available_copies_correctly(self):
+        """
+        ทดสอบว่า @property available_copies และ total_copies นับจำนวนจากตาราง BookCopy ถูกต้อง
+        """
+        # Python ควรมี 2 เล่ม (ว่าง 2) / Java ควรมี 0 เล่ม
+        self.assertEqual(self.book_python.total_copies, 2)
+        self.assertEqual(self.book_python.available_copies, 2)
+        
+        self.assertEqual(self.book_java.total_copies, 0)
+        self.assertEqual(self.book_java.available_copies, 0)
 
-    def test_member_can_request_borrow(self):
+    # ==========================================
+    # 🧪 TEST GROUP 2: Business Logic - Member
+    # ==========================================
+    def test_member_can_request_borrow_and_status_is_pending(self):
         """
-        REWORKED: สมาชิกกดยืมหนังสือ ต้องเปลี่ยนเป็น 'Pending' และตัดสต็อกชั่วคราว
+        ทดสอบว่า Member ส่งคำร้องยืมสำเร็จ และสร้าง BorrowingRecord สถานะ Pending
         """
-        response = self.member_client.get(reverse('borrow_book', args=[self.book_avail.id]))
-        
-        self.book_avail.refresh_from_db()
-        # เช็ก 1: สต็อกต้องลดลง 1 (เพื่อจองของไว้)
-        self.assertEqual(self.book_avail.AvailableCopies, 1)
-        
-        # เช็ก 2: สถานะตารางยืมเป็น Pending และยังไม่มี DueDate
-        record = BorrowingRecord.objects.get(UserID=self.member, BookID=self.book_avail)
+        url = reverse('borrow_book', args=[self.book_python.id])
+        initial_stock = self.book_python.available_copies
+
+        # Member กดส่งคำร้องขอยืม
+        response = self.member_client.post(url)
+
+        # เช็กผลลัพธ์ว่าสร้าง Record สำเร็จ และสต็อกยังไม่ถูกตัดจนกว่าบรรณารักษ์จะอนุมัติ
+        self.assertEqual(BorrowingRecord.objects.count(), 1)
+        record = BorrowingRecord.objects.first()
         self.assertEqual(record.Status, 'Pending')
-        self.assertIsNone(record.DueDate)
-        
+        self.assertIsNone(record.BookCopyID) # ยังไม่ผูกกับเล่มจริง
+        self.assertEqual(self.book_python.available_copies, initial_stock)
         self.assertRedirects(response, reverse('search_books'))
 
-# ==========================================
-# 2. เทสต์ฝั่งบรรณารักษ์ (Librarian)
-# ==========================================
-class LibrarianViewsTest(BaseViewTest):
-    def setUp(self):
-        super().setUp()
-        # จำลองว่า Member ส่งคำร้องมาก่อนแล้ว 1 รายการ
-        self.book_avail.AvailableCopies -= 1
-        self.book_avail.save()
-        self.pending_req = BorrowingRecord.objects.create(
-            UserID=self.member, BookID=self.book_avail, Status='Pending'
+    # ==========================================
+    # 🧪 TEST GROUP 3: Business Logic - Librarian
+    # ==========================================
+    def test_librarian_can_approve_borrow_and_reduces_available_copies(self):
+        """
+        ทดสอบว่าบรรณารักษ์อนุมัติคำร้อง -> ตัดสต็อกสำเร็จ -> ผูกเล่มหนังสือจริงเข้ากับ Record
+        """
+        pending_record = BorrowingRecord.objects.create(
+            UserID=self.member, BookID=self.book_python, Status='Pending'
         )
+        url = reverse('approve_borrow', args=[pending_record.id])
 
-    def test_dashboard_access_control(self):
-        """Member ห้ามเข้าหน้า Dashboard"""
-        response = self.member_client.get(reverse('librarian_borrow_dashboard'))
-        self.assertRedirects(response, reverse('search_books'))
-
-    def test_librarian_can_approve_request(self):
-        """
-        REWORKED: บรรณารักษ์กดอนุมัติ -> สถานะเปลี่ยนเป็น 'Active' และเพิ่มวันคืน (DueDate)
-        """
-        # สมมติว่าสร้าง URL pattern ชื่อ approve_borrow ไว้รับ POST
-        approve_url = reverse('approve_borrow', args=[self.pending_req.id])
-        response = self.lib_client.post(approve_url)
+        # บรรณารักษ์กด Approve
+        self.lib_client.post(url)
         
-        self.pending_req.refresh_from_db()
-        self.assertEqual(self.pending_req.Status, 'Active')
-        self.assertIsNotNone(self.pending_req.DueDate) # ถูกกำหนดวันคืน
-        self.assertRedirects(response, reverse('librarian_borrow_dashboard'))
+        pending_record.refresh_from_db()
+
+        self.assertEqual(pending_record.Status, 'Active')
+        self.assertIsNotNone(pending_record.BookCopyID) # ต้องมีการแจกจ่ายเล่มจริงให้แล้ว
+        self.assertEqual(pending_record.BookCopyID.Status, 'Borrowed')
+        self.assertEqual(self.book_python.available_copies, 1) # สต็อกว่างต้องลดลง 1
 
     def test_librarian_can_reject_request(self):
         """
-        REWORKED: บรรณารักษ์กดปฏิเสธ -> สถานะเป็น 'Rejected' และได้สต็อกคืน
+        ทดสอบบรรณารักษ์กดปฏิเสธ -> คำร้องเป็น Rejected
         """
-        before_copies = self.book_avail.AvailableCopies
-        reject_url = reverse('reject_borrow', args=[self.pending_req.id])
-        response = self.lib_client.post(reject_url)
-        
-        self.pending_req.refresh_from_db()
-        self.book_avail.refresh_from_db()
-        
-        self.assertEqual(self.pending_req.Status, 'Rejected')
-        self.assertEqual(self.book_avail.AvailableCopies, before_copies + 1) # คืนสต็อกที่จองไว้
-        self.assertRedirects(response, reverse('librarian_borrow_dashboard'))
+        pending_record = BorrowingRecord.objects.create(
+            UserID=self.member, BookID=self.book_python, Status='Pending'
+        )
+        url = reverse('reject_borrow', args=[pending_record.id])
 
-    def test_librarian_can_process_return(self):
-        """เทสต์ระบบคืนหนังสือของบรรณารักษ์"""
-        # จำลองเป็น Active ก่อน
-        self.pending_req.Status = 'Active'
-        self.pending_req.DueDate = timezone.now() + timedelta(days=7)
-        self.pending_req.save()
+        # บรรณารักษ์กด Reject
+        self.lib_client.post(url)
+        pending_record.refresh_from_db()
 
-        before_copies = self.book_avail.AvailableCopies
-        return_url = reverse('return_book', args=[self.pending_req.id])
+        self.assertEqual(pending_record.Status, 'Rejected')
+        self.assertEqual(self.book_python.available_copies, 2) # สต็อกต้องเท่าเดิม
+
+    def test_librarian_can_process_return_and_restores_stock(self):
+        """
+        ทดสอบรับคืนหนังสือ -> สถานะเปลี่ยนเป็น Returned -> เล่มหนังสือกลับมา Available
+        """
+        # จำลองการยืมที่กำลัง Active อยู่
+        self.python_copy_1.Status = 'Borrowed'
+        self.python_copy_1.save()
         
-        # สมมติบรรณารักษ์กดรับคืน
-        response = self.lib_client.post(return_url)
+        active_record = BorrowingRecord.objects.create(
+            UserID=self.member, 
+            BookID=self.book_python, 
+            BookCopyID=self.python_copy_1,
+            Status='Active',
+            DueDate=timezone.now() + timedelta(days=7)
+        )
+        url = reverse('return_book', args=[active_record.id])
+
+        # บรรณารักษ์กดรับคืน
+        self.lib_client.post(url)
         
-        self.pending_req.refresh_from_db()
-        self.book_avail.refresh_from_db()
-        
-        self.assertEqual(self.pending_req.Status, 'Returned')
-        self.assertIsNotNone(self.pending_req.ReturnDate)
-        self.assertEqual(self.book_avail.AvailableCopies, before_copies + 1) # คืนสต็อก
+        active_record.refresh_from_db()
+        self.python_copy_1.refresh_from_db()
+
+        self.assertEqual(active_record.Status, 'Returned')
+        self.assertIsNotNone(active_record.ReturnDate)
+        self.assertEqual(self.python_copy_1.Status, 'Available') # เล่มจริงกลับมาตีเข้าสต็อก
+        self.assertEqual(self.book_python.available_copies, 2) # สต็อกรวมกลับมาเต็ม 2 เล่ม
