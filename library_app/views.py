@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Member, Book, BorrowTransaction, AdminAuth
-from .forms import MemberRegistrationForm
+from .forms import MemberRegistrationForm, BookForm
+
 
 # ==========================================
 # Module 1: SSID-Based Entry
@@ -130,3 +131,81 @@ def edit_user(request, ssid):
         form = MemberRegistrationForm(instance=member)
         
     return render(request, 'library_app/users/form.html', {'form': form, 'action': 'Edit', 'member': member})
+
+# ==========================================
+# Module 3: Book Management (Admin Only)
+# ==========================================
+def manage_books(request):
+    """ หน้าแสดงรายการหนังสือและค้นหา """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    query = request.GET.get('q', '')
+    if query:
+        books = Book.objects.filter(title__icontains=query) | Book.objects.filter(book_id__icontains=query)
+    else:
+        books = Book.objects.all().order_by('-book_id')
+
+    return render(request, 'library_app/manage/book_list.html', {'books': books, 'query': query})
+
+def create_book(request):
+    """ หน้าเพิ่มหนังสือใหม่ (พร้อม Gen BookID) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    if request.method == 'POST':
+        form = BookForm(request.POST)
+        if form.is_valid():
+            new_book = form.save(commit=False)
+            
+            # Logic: สร้าง BookID อัตโนมัติ (เป็นเลขล้วน)
+            last_book = Book.objects.order_by('book_id').last()
+            if last_book:
+                new_book.book_id = last_book.book_id + 1
+            else:
+                new_book.book_id = 10001 # เริ่มต้นที่รหัส 10001
+                
+            new_book.save()
+            messages.success(request, f'เพิ่มหนังสือสำเร็จ! รหัสหนังสือคือ {new_book.book_id}')
+            return redirect('manage_books')
+    else:
+        form = BookForm()
+        
+    return render(request, 'library_app/manage/book_form.html', {'form': form, 'action': 'Add'})
+
+def edit_book(request, book_id):
+    """ หน้าแก้ไขข้อมูลหนังสือ """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    book = get_object_or_404(Book, book_id=book_id)
+    
+    if request.method == 'POST':
+        form = BookForm(request.POST, instance=book)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'อัปเดตข้อมูลหนังสือ {book.title} สำเร็จ!')
+            return redirect('manage_books')
+    else:
+        form = BookForm(instance=book)
+        
+    return render(request, 'library_app/manage/book_form.html', {'form': form, 'action': 'Edit', 'book': book})
+
+def delete_book(request, book_id):
+    """ ลบหนังสือ (ห้ามลบถ้ากำลังถูกยืมอยู่) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    book = get_object_or_404(Book, book_id=book_id)
+    
+    # เช็คว่ามีรายการยืมที่ยัง ACTIVE อยู่หรือไม่
+    active_borrows = book.transactions.filter(status='ACTIVE').exists()
+    
+    if active_borrows:
+        messages.error(request, f'ไม่สามารถลบ "{book.title}" ได้ เนื่องจากหนังสือกำลังถูกยืมอยู่!')
+    else:
+        book.delete()
+        messages.success(request, f'ลบหนังสือ "{book.title}" เรียบร้อยแล้ว')
+        
+    return redirect('manage_books')
+

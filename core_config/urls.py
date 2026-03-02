@@ -16,4 +16,10 @@ urlpatterns = [
     path('users/', views.manage_users, name='manage_users'),
     path('users/create/', views.create_user, name='create_user'),
     path('users/edit/<int:ssid>/', views.edit_user, name='edit_user'),
+
+    # --- Module 3: Book Management ---
+    path('manage/', views.manage_books, name='manage_books'),
+    path('manage/create/', views.create_book, name='create_book'),
+    path('manage/edit/<int:book_id>/', views.edit_book, name='edit_book'),
+    path('manage/delete/<int:book_id>/', views.delete_book, name='delete_book'),
 ]
