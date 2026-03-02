@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Member, Book, BorrowTransaction, AdminAuth
+from .forms import MemberRegistrationForm
 
 # ==========================================
 # Module 1: SSID-Based Entry
@@ -67,3 +68,65 @@ def member_profile(request, ssid):
     """ หน้าประวัติการยืมของ Member (/{ssid}/) """
     member = get_object_or_404(Member, ssid=ssid)
     return render(request, 'library_app/user_history.html', {'member': member})
+
+# ==========================================
+# Module 2: User Management (Admin Only)
+# ==========================================
+def manage_users(request):
+    """ หน้าแสดงรายชื่อและค้นหาสมาชิก """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index') # ถ้าไม่ใช่ Admin ให้เตะกลับหน้าแรก
+
+    query = request.GET.get('q', '')
+    if query:
+        # ค้นหาด้วย SSID
+        members = Member.objects.filter(ssid__icontains=query)
+    else:
+        members = Member.objects.all().order_by('-created_at')
+
+    return render(request, 'library_app/users/list.html', {'members': members, 'query': query})
+
+def create_user(request):
+    """ หน้าเพิ่มสมาชิกใหม่ (พร้อม Gen SSID) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    if request.method == 'POST':
+        form = MemberRegistrationForm(request.POST)
+        if form.is_valid():
+            new_member = form.save(commit=False)
+            
+            # Logic: สร้าง SSID อัตโนมัติ (เอาเลขล่าสุดของ Member ปกติ + 1)
+            # เพิ่ม .filter(is_admin=False) เพื่อไม่ให้ไปยุ่งกับเลข 9000xxxx ของ Admin
+            last_member = Member.objects.filter(is_admin=False).order_by('ssid').last()
+            
+            if last_member:
+                new_member.ssid = last_member.ssid + 1
+            else:
+                new_member.ssid = 10000001 # ถ้ายังไม่มี Member ทั่วไปเลย ให้เริ่มที่เลขนี้
+                
+            new_member.save()
+            messages.success(request, f'สร้างสมาชิกสำเร็จ! SSID ของเขาคือ {new_member.ssid}')
+            return redirect('manage_users')
+    else:
+        form = MemberRegistrationForm()
+        
+    return render(request, 'library_app/users/form.html', {'form': form, 'action': 'Create'})
+
+def edit_user(request, ssid):
+    """ หน้าแก้ไขข้อมูลสมาชิก """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    member = get_object_or_404(Member, ssid=ssid)
+    
+    if request.method == 'POST':
+        form = MemberRegistrationForm(request.POST, instance=member)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'อัปเดตข้อมูลของ {member.full_name} สำเร็จ!')
+            return redirect('manage_users')
+    else:
+        form = MemberRegistrationForm(instance=member)
+        
+    return render(request, 'library_app/users/form.html', {'form': form, 'action': 'Edit', 'member': member})

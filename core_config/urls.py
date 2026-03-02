@@ -12,9 +12,8 @@ urlpatterns = [
     # --- Member View ---
     path('<int:ssid>/', views.member_profile, name='member_profile'),
     
-    # (Route อื่นๆ สำหรับจัดการระบบ จะคอมเมนต์ไว้ก่อน เดี๋ยวเรามาทยอยเปิดใช้กัน)
-    # path('users/', views.manage_users, name='manage_users'),
-    # path('manage/', views.manage_books, name='manage_books'),
-    # path('borrow/', views.borrow_counter, name='borrow_counter'),
-    # path('record/', views.return_counter, name='return_counter'),
+    # --- Module 2: User Management ---
+    path('users/', views.manage_users, name='manage_users'),
+    path('users/create/', views.create_user, name='create_user'),
+    path('users/edit/<int:ssid>/', views.edit_user, name='edit_user'),
 ]
