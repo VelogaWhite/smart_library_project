@@ -1,19 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ action }} Member</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* CSS ช่วยจัดทรง Django Form */
-        form p { margin-bottom: 1rem; }
-        form label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-        form input { w-full; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none; width: 100%;}
-        form input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center py-10">
+{% extends 'library_app/base_admin.html' %}
 
+{% block title %}{{ action }} Member{% endblock %}
+
+{% block content %}
+<style>
+    form p { margin-bottom: 1rem; }
+    form label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+    form input { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none; width: 100%;}
+    form input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+</style>
+
+<div class="flex items-center justify-center py-10">
     <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 border-blue-500">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-2xl font-bold text-gray-800">{{ action }} Member</h1>
@@ -25,13 +22,11 @@
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}
-            
             <div class="mt-6 flex gap-3">
                 <a href="{% url 'manage_users' %}" class="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg text-center transition">Cancel</a>
                 <button type="submit" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Save</button>
             </div>
         </form>
     </div>
-
-</body>
-</html>
+</div>
+{% endblock %}

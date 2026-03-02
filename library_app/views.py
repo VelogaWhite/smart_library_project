@@ -4,6 +4,7 @@ from .models import Member, Book, BorrowTransaction, AdminAuth
 from .forms import MemberRegistrationForm, BookForm
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Q
 
 # ==========================================
 # Module 1: SSID-Based Entry
@@ -312,3 +313,34 @@ def process_return(request, tx_id):
             
     # ทำเสร็จแล้วเตะกลับไปที่หน้าค้นหาพร้อมส่ง SSID เดิมไปด้วย เพื่อให้เห็นรายการที่เหลือ
     return redirect(f"/record/?ssid={tx.member.ssid}")
+
+# ==========================================
+# Module 6: Transaction History
+# ==========================================
+def transaction_history(request):
+    """ หน้าแสดงประวัติธุรกรรมทั้งหมด (ดูได้เฉพาะ Admin) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+
+    # ดึงรายการทั้งหมด เรียงจากใหม่ไปเก่า
+    txs = BorrowTransaction.objects.all().order_by('-start_date')
+
+    if query:
+        # ค้นหาได้ทั้ง SSID ของคนยืม, Book ID และชื่อหนังสือ
+        txs = txs.filter(
+            Q(member__ssid__icontains=query) |
+            Q(book__book_id__icontains=query) |
+            Q(book__title__icontains=query)
+        )
+    
+    if status_filter:
+        txs = txs.filter(status=status_filter)
+
+    return render(request, 'library_app/transaction/list.html', {
+        'transactions': txs,
+        'query': query,
+        'status_filter': status_filter
+    })

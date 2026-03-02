@@ -1,97 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Return Counter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 min-h-screen">
+{% extends 'library_app/base_admin.html' %}
 
-    <nav class="bg-gray-800 text-white shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="font-bold text-xl">⚙️ Admin Panel</div>
-            <div class="flex gap-4 items-center">
-                <a href="{% url 'manage_users' %}" class="text-gray-400 hover:text-white transition">Users</a>
-                <a href="{% url 'manage_books' %}" class="text-gray-400 hover:text-white transition">Books</a>
-                <a href="{% url 'borrow_counter' %}" class="text-gray-400 hover:text-white transition">Borrow</a>
-                <a href="{% url 'return_counter' %}" class="text-white font-semibold">Record (Return)</a>
-                <a href="{% url 'index' %}" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition">Logout</a>
-            </div>
+{% block title %}Return Counter{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-yellow-500 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">📥 Return Counter</h2>
+            <p class="text-gray-500 mt-1">Scan Member ID (SSID) to view active borrows</p>
         </div>
-    </nav>
-
-    <div class="max-w-5xl mx-auto px-4 py-8">
-        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-yellow-500 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">📥 Return Counter</h2>
-                <p class="text-gray-500 mt-1">Scan Member ID (SSID) to view active borrows</p>
-            </div>
-            
-            <form method="get" action="{% url 'return_counter' %}" class="w-full md:w-1/2 flex gap-2">
-                <input type="number" name="ssid" value="{{ query_ssid }}" required autofocus placeholder="Enter SSID..." 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none font-mono text-xl tracking-widest bg-gray-50">
-                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-lg shadow transition">Search</button>
-            </form>
-        </div>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="{% if '⚠️' in message.tags or 'error' in message.tags %}bg-red-100 border-red-400 text-red-700{% else %}bg-green-100 border-green-400 text-green-700{% endif %} border px-4 py-3 rounded relative mb-6 shadow-sm font-medium">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-
-        {% if member %}
-            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-                    <div>
-                        <span class="font-bold text-gray-700 text-lg">{{ member.full_name }}</span>
-                        <span class="text-gray-500 text-sm ml-2">ID: {{ member.ssid }}</span>
-                    </div>
-                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{{ active_txs.count }} Active Borrows</span>
-                </div>
-
-                <table class="w-full text-left">
-                    <thead class="bg-white border-b text-gray-600 text-sm">
-                        <tr>
-                            <th class="p-4">Book Details</th>
-                            <th class="p-4">Borrow Date</th>
-                            <th class="p-4">Due Date</th>
-                            <th class="p-4 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tx in active_txs %}
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-4">
-                                <div class="font-medium text-gray-800">{{ tx.book.title }}</div>
-                                <div class="text-sm text-gray-500 font-mono">Book ID: {{ tx.book.book_id }}</div>
-                            </td>
-                            <td class="p-4 text-gray-600">{{ tx.start_date|date:"d M Y" }}</td>
-                            <td class="p-4">
-                                <span class="{% if tx.is_overdue %}text-red-600 font-bold{% else %}text-gray-600{% endif %}">
-                                    {{ tx.due_date|date:"d M Y" }}
-                                    {% if tx.is_overdue %}<span class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Overdue</span>{% endif %}
-                                </span>
-                            </td>
-                            <td class="p-4 text-right">
-                                <form method="post" action="{% url 'process_return' tx.tx_id %}" onsubmit="return confirm('ยืนยันรับคืนหนังสือ {{ tx.book.title }}?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition">
-                                        Return 📥
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="p-8 text-center text-gray-400">No active borrowed books for this member.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+        
+        <form method="get" action="{% url 'return_counter' %}" class="w-full md:w-1/2 flex gap-2">
+            <input type="number" name="ssid" value="{{ query_ssid }}" required autofocus placeholder="Enter SSID..." 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none font-mono text-xl tracking-widest bg-gray-50">
+            <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-lg shadow transition">Search</button>
+        </form>
     </div>
 
-</body>
-</html>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="{% if 'error' in message.tags or 'warning' in message.tags %}bg-red-100 border-red-400 text-red-700{% else %}bg-green-100 border-green-400 text-green-700{% endif %} border px-4 py-3 rounded relative mb-6 shadow-sm font-medium">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if member %}
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-gray-700 text-lg">{{ member.full_name }}</span>
+                    <span class="text-gray-500 text-sm ml-2">ID: {{ member.ssid }}</span>
+                </div>
+                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{{ active_txs.count }} Active Borrows</span>
+            </div>
+
+            <table class="w-full text-left">
+                <thead class="bg-white border-b text-gray-600 text-sm">
+                    <tr>
+                        <th class="p-4">Book Details</th>
+                        <th class="p-4">Borrow Date</th>
+                        <th class="p-4">Due Date</th>
+                        <th class="p-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in active_txs %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4">
+                            <div class="font-medium text-gray-800">{{ tx.book.title }}</div>
+                            <div class="text-sm text-gray-500 font-mono">Book ID: {{ tx.book.book_id }}</div>
+                        </td>
+                        <td class="p-4 text-gray-600">{{ tx.start_date|date:"d M Y" }}</td>
+                        <td class="p-4">
+                            <span class="{% if tx.is_overdue %}text-red-600 font-bold{% else %}text-gray-600{% endif %}">
+                                {{ tx.due_date|date:"d M Y" }}
+                                {% if tx.is_overdue %}<span class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Overdue</span>{% endif %}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right">
+                            <form method="post" action="{% url 'process_return' tx.tx_id %}" onsubmit="return confirm('ยืนยันรับคืนหนังสือ {{ tx.book.title }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition">
+                                    Return 📥
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="p-8 text-center text-gray-400">No active borrowed books for this member.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

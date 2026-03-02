@@ -29,4 +29,7 @@ urlpatterns = [
     # --- Module 5: Return Processing ---
     path('record/', views.return_counter, name='return_counter'),
     path('record/<int:tx_id>/process/', views.process_return, name='process_return'),
+
+    # --- Module 6: Transaction History ---
+    path('transaction/', views.transaction_history, name='transaction_history'),
 ]

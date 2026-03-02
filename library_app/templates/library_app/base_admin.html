@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <nav class="bg-gray-800 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">⚙️</span>
+                <span class="font-bold text-xl tracking-wide">Admin Panel</span>
+            </div>
+            
+            <div class="hidden md:flex gap-6 items-center font-medium text-sm">
+                <a href="{% url 'manage_users' %}" class="{% if request.resolver_match.url_name == 'manage_users' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">👥 Users</a>
+                
+                <a href="{% url 'manage_books' %}" class="{% if request.resolver_match.url_name == 'manage_books' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📚 Books</a>
+                
+                <a href="{% url 'borrow_counter' %}" class="{% if request.resolver_match.url_name == 'borrow_counter' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📗 Borrow</a>
+                
+                <a href="{% url 'return_counter' %}" class="{% if request.resolver_match.url_name == 'return_counter' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📥 Record</a>
+                
+                <a href="{% url 'transaction_history' %}" class="{% if request.resolver_match.url_name == 'transaction_history' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📊 Transaction</a>
+                
+                <a href="{% url 'index' %}" class="bg-red-500 hover:bg-red-600 px-4 py-1.5 rounded-lg shadow transition ml-4">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="w-full">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>
