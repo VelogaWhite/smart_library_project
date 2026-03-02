@@ -32,4 +32,8 @@ urlpatterns = [
 
     # --- Module 6: Transaction History ---
     path('transaction/', views.transaction_history, name='transaction_history'),
+
+    # --- Module 7: Admin Settings ---
+    path('settings/', views.admin_settings, name='admin_settings'),
+    path('settings/change-password/', views.change_password, name='change_password'),
 ]

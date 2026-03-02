@@ -25,6 +25,8 @@
                 <a href="{% url 'return_counter' %}" class="{% if request.resolver_match.url_name == 'return_counter' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📥 Record</a>
                 
                 <a href="{% url 'transaction_history' %}" class="{% if request.resolver_match.url_name == 'transaction_history' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📊 Transaction</a>
+
+                <a href="{% url 'admin_settings' %}" class="{% if request.resolver_match.url_name == 'admin_settings' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">⚙️ Settings</a>
                 
                 <a href="{% url 'index' %}" class="bg-red-500 hover:bg-red-600 px-4 py-1.5 rounded-lg shadow transition ml-4">Logout</a>
             </div>

@@ -344,3 +344,42 @@ def transaction_history(request):
         'query': query,
         'status_filter': status_filter
     })
+
+
+# ==========================================
+# Module 7: Admin Settings (Change Password)
+# ==========================================
+def admin_settings(request):
+    """ หน้าหลักของ Settings (แสดงข้อมูลเบื้องต้น) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+    
+    admin = Member.objects.get(ssid=request.session['logged_in_admin_ssid'])
+    return render(request, 'library_app/admin/settings.html', {'admin': admin})
+
+def change_password(request):
+    """ Logic สำหรับการเปลี่ยนรหัสผ่าน """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    if request.method == 'POST':
+        current_pw = request.POST.get('current_password')
+        new_pw = request.POST.get('new_password')
+        confirm_pw = request.POST.get('confirm_password')
+        
+        admin = Member.objects.get(ssid=request.session['logged_in_admin_ssid'])
+        
+        # 1. เช็ครหัสผ่านเดิม (สมมติว่าตอนนี้เรายังไม่ได้ Hash รหัสผ่าน)
+        if admin.password != current_pw:
+            messages.error(request, '❌ Current password is incorrect.')
+        # 2. เช็คว่ารหัสใหม่ตรงกันไหม
+        elif new_pw != confirm_pw:
+            messages.error(request, '❌ New passwords do not match.')
+        # 3. ผ่านเงื่อนไข บันทึกรหัสใหม่
+        else:
+            admin.password = new_pw
+            admin.save()
+            messages.success(request, '✅ Password updated successfully!')
+            return redirect('admin_settings')
+
+    return redirect('admin_settings')
