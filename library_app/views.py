@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Member, Book, BorrowTransaction, AdminAuth
 from .forms import MemberRegistrationForm, BookForm
-
+from django.utils import timezone
+from datetime import timedelta
 
 # ==========================================
 # Module 1: SSID-Based Entry
@@ -209,3 +210,51 @@ def delete_book(request, book_id):
         
     return redirect('manage_books')
 
+# ==========================================
+# Module 4: Borrow Creation (หน้าเคาน์เตอร์ยืม)
+# ==========================================
+def borrow_counter(request):
+    """ หน้าทำรายการยืมด้วยการสแกน SSID และ BookID """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    if request.method == 'POST':
+        ssid_input = request.POST.get('ssid')
+        book_id_input = request.POST.get('book_id')
+        duration_days = int(request.POST.get('duration', 7)) # ค่าเริ่มต้นให้ยืม 7 วัน
+
+        try:
+            member = Member.objects.get(ssid=ssid_input)
+            book = Book.objects.get(book_id=book_id_input)
+
+            # 1. ตรวจสอบว่าหนังสือเล่มนี้พร้อมยืมหรือไม่
+            if book.status != 'Available':
+                messages.error(request, f'❌ หนังสือ "{book.title}" ไม่พร้อมให้ยืม (สถานะปัจจุบัน: {book.status})')
+                return redirect('borrow_counter')
+
+            # 2. ตรวจสอบว่าหนังสือเล่มนี้ถูกยืมอยู่และยังไม่ได้คืนหรือไม่ (กันพลาด)
+            is_already_borrowed = BorrowTransaction.objects.filter(book=book, status='ACTIVE').exists()
+            if is_already_borrowed:
+                messages.error(request, f'❌ หนังสือ "{book.title}" กำลังถูกยืมอยู่โดยสมาชิกท่านอื่น!')
+                return redirect('borrow_counter')
+
+            # 3. สร้างรายการยืม
+            due_date = timezone.now() + timedelta(days=duration_days)
+            BorrowTransaction.objects.create(
+                member=member,
+                book=book,
+                due_date=due_date,
+                status='ACTIVE'
+            )
+
+            messages.success(request, f'✅ ทำรายการสำเร็จ! {member.full_name} ยืม "{book.title}" (กำหนดคืนในอีก {duration_days} วัน)')
+            return redirect('borrow_counter')
+
+        except Member.DoesNotExist:
+            messages.error(request, '⚠️ ไม่พบรหัสสมาชิก (SSID) นี้ในระบบ')
+        except Book.DoesNotExist:
+            messages.error(request, '⚠️ ไม่พบรหัสหนังสือ (Book ID) นี้ในระบบ')
+        except ValueError:
+            messages.error(request, '⚠️ กรุณากรอกรหัสเป็นตัวเลขเท่านั้น')
+
+    return render(request, 'library_app/borrow/create_tx.html')

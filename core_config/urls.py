@@ -22,4 +22,7 @@ urlpatterns = [
     path('manage/create/', views.create_book, name='create_book'),
     path('manage/edit/<int:book_id>/', views.edit_book, name='edit_book'),
     path('manage/delete/<int:book_id>/', views.delete_book, name='delete_book'),
+
+    # --- Module 4: Borrow Counter ---
+    path('borrow/', views.borrow_counter, name='borrow_counter'),
 ]
