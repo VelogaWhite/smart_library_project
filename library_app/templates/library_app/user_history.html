@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Library Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="font-bold text-xl text-blue-600">📚 Smart Library</div>
+            <div class="flex items-center gap-4">
+                <span class="text-gray-600 text-sm">Welcome, <span class="font-semibold text-gray-800">{{ member.full_name }}</span></span>
+                <a href="{% url 'index' %}" class="text-red-500 hover:text-red-700 text-sm font-medium">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">My Borrowing History</h2>
+                <p class="text-gray-500 text-sm mt-1">SSID: <span class="tracking-widest">{{ member.ssid }}</span></p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
+                        <th class="p-4 font-semibold">Transaction ID</th>
+                        <th class="p-4 font-semibold">Book Title</th>
+                        <th class="p-4 font-semibold">Borrow Date</th>
+                        <th class="p-4 font-semibold">Due Date</th>
+                        <th class="p-4 font-semibold">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in member.transactions.all %}
+                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                            <td class="p-4 text-gray-500">TX-{{ tx.tx_id }}</td>
+                            <td class="p-4 font-medium text-gray-800">{{ tx.book.title }}</td>
+                            <td class="p-4 text-gray-600">{{ tx.start_date|date:"d M Y" }}</td>
+                            <td class="p-4 text-gray-600">{{ tx.due_date|date:"d M Y" }}</td>
+                            <td class="p-4">
+                                {% if tx.status == 'ACTIVE' %}
+                                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">ACTIVE</span>
+                                {% elif tx.status == 'RETURNED' %}
+                                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">RETURNED</span>
+                                {% else %}
+                                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">OVERDUE</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-400">
+                                <span class="text-4xl block mb-2">📭</span>
+                                You have no borrowing history.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

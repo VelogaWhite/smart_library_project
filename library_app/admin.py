@@ -1,7 +1,8 @@
 from django.contrib import admin
-from .models import Book, Category, BorrowingRecord ,User
+from .models import Member, Book, BorrowTransaction, AdminAuth
 
+# ลงทะเบียน Models เข้าไปในหน้าต่าง Admin ของ Django
+admin.site.register(Member)
 admin.site.register(Book)
-admin.site.register(Category)
-admin.site.register(BorrowingRecord)
-admin.site.register(User)   #เพิ่มหน้าต่างในการแก้ไข user
+admin.site.register(BorrowTransaction)
+admin.site.register(AdminAuth)

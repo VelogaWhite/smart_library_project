@@ -1,11 +1,8 @@
-from django.contrib.auth.forms import UserCreationForm
 from django import forms
-from .models import User
+from .models import Member
 
-class MemberRegistrationForm(UserCreationForm):
-    # เพิ่มฟิลด์ FullName เข้าไปในฟอร์มสมัคร
-    FullName = forms.CharField(max_length=255, required=True, help_text='Enter your full name')
-
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = UserCreationForm.Meta.fields + ('FullName', 'email',)
+class MemberRegistrationForm(forms.ModelForm):
+    class Meta:
+        model = Member
+        # ใน V5 เราต้องการแค่ชื่อ อีเมล และเบอร์โทร ส่วน SSID ระบบจะ Gen ให้ตอนบันทึก
+        fields = ['full_name', 'email', 'phone_number']

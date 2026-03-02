@@ -1,114 +1,137 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth import get_user_model
-# อัปเดตการ Import Model ตาม V4.0 (ลบ TotalCopies เพิ่ม BookCopy)
-from library_app.models import Book, Category, BookCopy, BorrowingRecord
-from datetime import timedelta
 from django.utils import timezone
+from datetime import timedelta
 
-User = get_user_model()
+# นำเข้า Models ที่ "คาดว่า" จะถูกสร้างขึ้นใหม่ใน V5.0
+# (หมายเหตุ: หากคุณหยกยังไม่ได้แก้ models.py เทสต์นี้จะ Error ซึ่งเป็นเรื่องปกติของ TDD ครับ)
+try:
+    from library_app.models import Member, Book, BorrowTransaction
+except ImportError:
+    # ใส่ไว้เผื่อกรณีที่ models.py ยังเป็น V4 อยู่
+    pass
 
-class TypicalDaySystemTestV4(TestCase):
+class TypicalDaySystemTestV5(TestCase):
+    """
+    ทดสอบ Integration Test ของระบบ Smart Library V5.0
+    เน้น Flow: SSID Login -> Admin สแกนยืมที่เคาน์เตอร์ -> Admin รับคืน
+    """
+    
+    @classmethod
+    def setUpTestData(cls):
+        # 1. จำลองข้อมูล Admin (บรรณารักษ์)
+        cls.admin_user = Member.objects.create(
+            ssid='90000001',
+            full_name='Sarah Librarian',
+            email='sarah@library.com',
+            phone_number='0801112222',
+            is_admin=True
+        )
+        # รหัสผ่านสำหรับ Admin (สมมติว่าใน V5 จะมีการเก็บ hashed password สำหรับ admin ต่างหาก 
+        # หรืออาจจะเช็คจากฟิลด์เฉพาะ เราจะจำลองการตั้งค่าเบื้องต้นไว้ก่อน)
+        cls.admin_password = 'adminpassword123'
+
+        # 2. จำลองข้อมูล Member (สมาชิกทั่วไป)
+        cls.member_user = Member.objects.create(
+            ssid='10000001',
+            full_name='Alex Member',
+            email='alex@example.com',
+            phone_number='0809998888',
+            is_admin=False
+        )
+
+        # 3. จำลองข้อมูลหนังสือ (BookID เป็นตัวเลขล้วนตาม V5)
+        cls.book = Book.objects.create(
+            book_id='80000001',
+            title='Python for Data Science',
+            author='John Doe',
+            category='Technology',
+            status='Available'
+        )
+
     def setUp(self):
-        # 1. เตรียมข้อมูลพื้นฐาน (หมวดหมู่ และ หนังสือ)
-        self.category = Category.objects.create(CategoryName="Technology")
-        
-        self.book = Book.objects.create(
-            Title="Python for Beginners",
-            CategoryID=self.category,
-            AuthorName="John Doe",
-            ISBN="123456789"
-            # ไม่ใช้ TotalCopies และ AvailableCopies แล้ว
-        )
+        # ใช้ Client สองตัวเพื่อจำลองเบราว์เซอร์ของ Admin และ Member แยกกัน
+        self.admin_client = Client()
+        self.member_client = Client()
 
-        # 2. จำลอง Physical Books (หนังสือตัวเป็นๆ ที่มีบาร์โค้ด)
-        self.copy1 = BookCopy.objects.create(BookID=self.book, Barcode="BC-PY-001", Status="Available")
-        self.copy2 = BookCopy.objects.create(BookID=self.book, Barcode="BC-PY-002", Status="Available")
-
-        # 3. เตรียม User Accounts
-        # Sarah - Librarian
-        self.sarah = User.objects.create_user(
-            username='sarah_lib', 
-            password='password123', 
-            Role='Librarian',
-            FullName='Sarah Connor'
-        )
-        
-        # Alex - Member
-        self.alex = User.objects.create_user(
-            username='alex_mem', 
-            password='password123', 
-            Role='Member',
-            FullName='Alex Murphy'
-        )
-
-        # 4. จำลอง Browser Clients (และ Login ไว้ล่วงหน้า)
-        self.sarah_client = Client()
-        self.sarah_client.force_login(self.sarah)
-
-        self.alex_client = Client()
-        self.alex_client.force_login(self.alex)
-
-    def test_a_typical_day_using_v4_system(self):
+    def test_v5_typical_day_workflow(self):
         """
-        Integration Test ตาม User Stories ของระบบ Version 4.0
+        จำลองเหตุการณ์จริง: Admin ล็อกอิน -> สแกนยืมหนังสือให้ Alex -> Alex คืนหนังสือ
         """
-        # ==========================================
-        # SCENE 1: Member ค้นหาและส่งคำร้องขอยืม (Request)
-        # ==========================================
-        # Alex ค้นหาหนังสือ
-        response = self.alex_client.get(reverse('search_books') + '?q=Python')
-        self.assertContains(response, 'Python for Beginners')
-
-        # Alex กด Request Borrow
-        self.alex_client.post(reverse('borrow_book', args=[self.book.id]))
         
-        # ตรวจสอบสถานะ: ต้องเกิด Record ที่เป็น Pending และยังไม่ถูกผูกบาร์โค้ด
-        borrow_record = BorrowingRecord.objects.get(UserID=self.alex, BookID=self.book)
-        self.assertEqual(borrow_record.Status, 'Pending')
-        self.assertIsNone(borrow_record.BookCopyID)
-
         # ==========================================
-        # SCENE 2: Librarian อนุมัติด้วยบาร์โค้ด (Barcode Checkout)
+        # SCENE 1: Admin ล็อกอินเข้าระบบด้วย SSID
         # ==========================================
-        # Sarah เห็นคำร้อง และหยิบเล่ม "BC-PY-001" มาสแกนอนุมัติ
-        self.sarah_client.post(reverse('approve_borrow', args=[borrow_record.id]), {
-            'barcode': 'BC-PY-001' # POST payload สำหรับ V4.0
-        })
+        # 1.1 Sarah เข้าหน้าแรก (/) และกรอก SSID ของตัวเอง
+        response = self.admin_client.post('/', {'ssid': '90000001'})
         
-        # Refresh ข้อมูลจากฐานข้อมูล
-        borrow_record.refresh_from_db()
-        self.copy1.refresh_from_db()
-
-        # ตรวจสอบสถานะ: Record ต้องเป็น Active, ผูกกับ Copy1 และเล่มนั้นสถานะต้องเปลี่ยนเป็น Borrowed
-        self.assertEqual(borrow_record.Status, 'Active')
-        self.assertEqual(borrow_record.BookCopyID, self.copy1)
-        self.assertEqual(self.copy1.Status, 'Borrowed')
+        # ระบบต้อง Redirect ไปหน้า /auth เพราะรู้ว่าเป็น Admin
+        self.assertRedirects(response, '/auth')
+        
+        # 1.2 Sarah กรอกรหัสผ่านที่หน้า /auth
+        response = self.admin_client.post('/auth', {'password': self.admin_password})
+        
+        # ถ้ารหัสถูก ต้อง Redirect ไปหน้า Dashboard (เช่น /transaction หรือ /borrow)
+        # สมมติว่าล็อกอินสำเร็จไปหน้า /borrow
+        self.assertRedirects(response, '/borrow')
 
         # ==========================================
-        # SCENE 3: Member กดต่ออายุหนังสือ (Self-Renew)
+        # SCENE 2: สมาชิกมายืมหนังสือที่เคาน์เตอร์
         # ==========================================
-        original_due_date = borrow_record.DueDate
+        # 2.1 Alex หยิบหนังสือ (BookID: 80000001) มาที่เคาน์เตอร์พร้อมบอก SSID (10000001)
+        # Sarah ใช้ระบบยิงบาร์โค้ดลงฟอร์มในหน้า /borrow
+        borrow_data = {
+            'ssid': '10000001',
+            'book_id': '80000001',
+            'duration': 7, # ยืม 7 วัน
+            'unit': 'days'
+        }
+        response = self.admin_client.post('/borrow', data=borrow_data)
         
-        # Alex เข้ามาหน้าประวัติแล้วกดปุ่ม Renew
-        self.alex_client.post(reverse('renew_book', args=[borrow_record.id]))
+        # ยืมสำเร็จ ระบบควร Redirect กลับมาหน้า /borrow หรือไปหน้าประวัติ
+        self.assertEqual(response.status_code, 302) 
+
+        # 2.2 ตรวจสอบใน Database ว่าสถานะการยืมเป็น ACTIVE
+        tx = BorrowTransaction.objects.get(ssid=self.member_user, book_id=self.book)
+        self.assertEqual(tx.status, 'ACTIVE')
         
-        borrow_record.refresh_from_db()
-        
-        # ตรวจสอบสถานะ: ตัวนับการต่ออายุเพิ่มขึ้น และวันคืนถูกยืดออกไป
-        self.assertEqual(borrow_record.RenewCount, 1)
-        self.assertTrue(borrow_record.DueDate > original_due_date)
+        # ตรวจสอบว่าสถานะหนังสือเปลี่ยนเป็น Borrowed
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.status, 'Borrowed') # หรือสถานะอื่นๆ ตามที่ออกแบบไว้
 
         # ==========================================
-        # SCENE 4: Librarian กดรับคืน (Return & Restock)
+        # SCENE 3: การตรวจสอบประวัติการยืม (Member View)
         # ==========================================
-        # Sarah สแกน/กดรับคืนหนังสือ
-        self.sarah_client.post(reverse('return_book', args=[borrow_record.id]))
+        # 3.1 Alex กลับบ้าน ลองเข้าเว็บด้วย SSID ตัวเอง
+        response = self.member_client.post('/', {'ssid': '10000001'})
         
-        borrow_record.refresh_from_db()
-        self.copy1.refresh_from_db()
+        # ระบบต้องพา Alex ไปหน้าประวัติส่วนตัวของตัวเองโดยตรง (ไม่มีหน้ากรอกรหัสผ่าน)
+        self.assertRedirects(response, '/10000001')
+        
+        # 3.2 ในหน้าประวัติ Alex ต้องเห็นหนังสือ 'Python for Data Science'
+        response = self.member_client.get('/10000001/history')
+        self.assertContains(response, 'Python for Data Science')
+        self.assertContains(response, 'ACTIVE')
 
-        # ตรวจสอบสถานะ: Record ปิดแล้ว และหนังสือเล่มจริงถูกดันกลับมาเป็น Available
-        self.assertEqual(borrow_record.Status, 'Returned')
-        self.assertIsNotNone(borrow_record.ReturnDate)
-        self.assertEqual(self.copy1.Status, 'Available')
+        # ==========================================
+        # SCENE 4: คืนหนังสือที่เคาน์เตอร์ (Admin View)
+        # ==========================================
+        # 4.1 ผ่านไป 3 วัน Alex นำหนังสือมาคืน Sarah เข้าหน้า /record
+        # กรอก SSID ของ Alex เพื่อดึงรายการที่กำลังยืม
+        response = self.admin_client.get('/record?ssid=10000001')
+        self.assertContains(response, tx.tx_id) # ต้องเจอ transaction id นี้
+
+        # 4.2 Sarah กดปุ่ม Return บันทึกการรับคืน
+        return_url = reverse('return_transaction', args=[tx.tx_id]) # สมมติชื่อ URL
+        response = self.admin_client.post(return_url)
+
+        # 4.3 ตรวจสอบความถูกต้องหลังรับคืน
+        tx.refresh_from_db()
+        self.book.refresh_from_db()
+        
+        # สถานะการยืมต้องเป็น RETURNED
+        self.assertEqual(tx.status, 'RETURNED')
+        self.assertIsNotNone(tx.returned_at) # ต้องมีวันที่บันทึกการคืน
+        
+        # หนังสือต้องกลับมาพร้อมให้คนอื่นยืม (Available)
+        self.assertEqual(self.book.status, 'Available')
