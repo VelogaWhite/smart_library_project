@@ -258,3 +258,57 @@ def borrow_counter(request):
             messages.error(request, '⚠️ กรุณากรอกรหัสเป็นตัวเลขเท่านั้น')
 
     return render(request, 'library_app/borrow/create_tx.html')
+
+# ==========================================
+# Module 5: Return Processing (หน้าเคาน์เตอร์รับคืน)
+# ==========================================
+def return_counter(request):
+    """ หน้าค้นหาประวัติการยืมด้วย SSID และแสดงรายการที่ต้องคืน """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    query_ssid = request.GET.get('ssid', '')
+    member = None
+    active_txs = []
+
+    if query_ssid:
+        try:
+            member = Member.objects.get(ssid=query_ssid)
+            # ดึงเฉพาะรายการที่กำลังยืม (ACTIVE) ของสมาชิกคนนี้
+            active_txs = member.transactions.filter(status='ACTIVE').order_by('start_date')
+        except Member.DoesNotExist:
+            messages.error(request, '⚠️ ไม่พบรหัสสมาชิก (SSID) นี้ในระบบ')
+
+    return render(request, 'library_app/borrow/record.html', {
+        'member': member, 
+        'active_txs': active_txs, 
+        'query_ssid': query_ssid
+    })
+
+def process_return(request, tx_id):
+    """ Logic ประมวลผลการรับคืนและคิดค่าปรับ (เรียกเมื่อกดปุ่ม Return) """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    tx = get_object_or_404(BorrowTransaction, tx_id=tx_id)
+    
+    if tx.status == 'ACTIVE':
+        tx.returned_at = timezone.now()
+        tx.status = 'RETURNED'
+        
+        # คำนวณค่าปรับ (สมมติคิดวันละ 10 บาทหากเกิน Due Date)
+        if tx.returned_at > tx.due_date:
+            overdue_days = (tx.returned_at - tx.due_date).days
+            if overdue_days > 0:
+                tx.fine_amount = overdue_days * 10.00
+                
+        tx.save()
+        
+        # สร้างข้อความแจ้งเตือน (ถ้ามีค่าปรับให้โชว์เป็นสีแดง)
+        if tx.fine_amount > 0:
+            messages.error(request, f'⚠️ รับคืน "{tx.book.title}" แล้ว (มีค่าปรับ {tx.fine_amount} บาท!)')
+        else:
+            messages.success(request, f'✅ รับคืน "{tx.book.title}" เรียบร้อยแล้ว')
+            
+    # ทำเสร็จแล้วเตะกลับไปที่หน้าค้นหาพร้อมส่ง SSID เดิมไปด้วย เพื่อให้เห็นรายการที่เหลือ
+    return redirect(f"/record/?ssid={tx.member.ssid}")

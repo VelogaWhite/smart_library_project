@@ -25,4 +25,8 @@ urlpatterns = [
 
     # --- Module 4: Borrow Counter ---
     path('borrow/', views.borrow_counter, name='borrow_counter'),
+
+    # --- Module 5: Return Processing ---
+    path('record/', views.return_counter, name='return_counter'),
+    path('record/<int:tx_id>/process/', views.process_return, name='process_return'),
 ]
