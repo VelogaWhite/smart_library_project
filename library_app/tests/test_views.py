@@ -1,163 +1,200 @@
-from django.test import TestCase, Client
-from django.urls import reverse
+from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from library_app.models import User, Category, Book, BookCopy, BorrowingRecord
 
-class SmartLibraryV4Tests(TestCase):
-    """
-    ชุดการทดสอบสำหรับระบบ Smart Library V4.0 (Item-Level Tracking)
-    """
+from library_app.models import Member, Book, BorrowTransaction
+
+
+class MemberPortalViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        # ==========================================
-        # 1. สร้างผู้ใช้งานจำลอง (Mock Users)
-        # ==========================================
-        cls.member = User.objects.create_user(
-            username='member_john', 
-            password='password123', 
-            Role='Member', 
-            FullName='John Doe'
-        )
-        cls.librarian = User.objects.create_user(
-            username='lib_sarah', 
-            password='password123', 
-            Role='Librarian', 
-            FullName='Sarah Connor'
+        """
+        ใช้ setUpTestData เพื่อสร้างข้อมูลครั้งเดียวสำหรับทุกเทสต์
+        """
+
+        # ==========================
+        # สร้างสมาชิก 2 คน
+        # ==========================
+        cls.member_a = Member.objects.create(
+            ssid=10000001,
+            full_name="Member A",
+            email="a@test.com",
+            phone_number="0811111111",
+            is_admin=False
         )
 
-        # ==========================================
-        # 2. สร้างหมวดหมู่ และ หัวเรื่องหนังสือจำลอง
-        # ==========================================
-        cls.category = Category.objects.create(CategoryName='Technology')
-        cls.book_python = Book.objects.create(
-            Title='Python 101', 
-            CategoryID=cls.category, 
-            AuthorName='Guido', 
-            ISBN='978-01'
-        )
-        cls.book_java = Book.objects.create(
-            Title='Java Advanced', 
-            CategoryID=cls.category, 
-            AuthorName='James', 
-            ISBN='978-02'
+        cls.member_b = Member.objects.create(
+            ssid=10000002,
+            full_name="Member B",
+            email="b@test.com",
+            phone_number="0822222222",
+            is_admin=False
         )
 
-        # ==========================================
-        # 3. สร้างเล่มหนังสือจริง (BookCopy)
-        # ==========================================
-        # Python 101 มีสต็อก 2 เล่ม (Available)
-        cls.python_copy_1 = BookCopy.objects.create(BookID=cls.book_python, Barcode='PY-001', Status='Available')
-        cls.python_copy_2 = BookCopy.objects.create(BookID=cls.book_python, Barcode='PY-002', Status='Available')
-        
-        # Java Advanced ไม่มีสต็อก (ไม่ได้สร้าง BookCopy ให้)
+        # ==========================
+        # สร้างหนังสือ 2 เล่ม
+        # ==========================
+        cls.book_1 = Book.objects.create(
+            book_id=2001,
+            title="Django for Beginners",
+            author="William",
+            isbn="1234567890",
+            category="Technology",
+            location="A1",
+            status="Available"
+        )
 
-    def setUp(self):
-        # เตรียม Client สำหรับจำลองการ Request เข้าเว็บ
-        self.member_client = Client()
-        self.member_client.force_login(self.member)
-        
-        self.lib_client = Client()
-        self.lib_client.force_login(self.librarian)
+        cls.book_2 = Book.objects.create(
+            book_id=2002,
+            title="Python Advanced",
+            author="John",
+            isbn="0987654321",
+            category="Technology",
+            location="A2",
+            status="Maintenance"
+        )
+
+        now = timezone.now()
+
+        # ==========================
+        # Transaction ของ Member A (ACTIVE)
+        # ==========================
+        cls.tx_a = BorrowTransaction.objects.create(
+            member=cls.member_a,
+            book=cls.book_1,
+            due_date=now + timedelta(days=5),
+            returned_at=None,
+            fine_amount=0,
+            status="ACTIVE"
+        )
+
+        # ==========================
+        # Transaction ของ Member B (OVERDUE)
+        # ==========================
+        cls.tx_b = BorrowTransaction.objects.create(
+            member=cls.member_b,
+            book=cls.book_2,
+            due_date=now - timedelta(days=2),
+            returned_at=None,
+            fine_amount=50,
+            status="OVERDUE"
+        )
 
     # ==========================================
-    # 🧪 TEST GROUP 1: Models & Properties
+    # 🔐 Access Control Tests
     # ==========================================
-    def test_book_property_counts_available_copies_correctly(self):
-        """
-        ทดสอบว่า @property available_copies และ total_copies นับจำนวนจากตาราง BookCopy ถูกต้อง
-        """
-        # Python ควรมี 2 เล่ม (ว่าง 2) / Java ควรมี 0 เล่ม
-        self.assertEqual(self.book_python.total_copies, 2)
-        self.assertEqual(self.book_python.available_copies, 2)
-        
-        self.assertEqual(self.book_java.total_copies, 0)
-        self.assertEqual(self.book_java.available_copies, 0)
 
-    # ==========================================
-    # 🧪 TEST GROUP 2: Business Logic - Member
-    # ==========================================
-    def test_member_can_request_borrow_and_status_is_pending(self):
+    def test_member_home_requires_login(self):
         """
-        ทดสอบว่า Member ส่งคำร้องยืมสำเร็จ และสร้าง BorrowingRecord สถานะ Pending
+        ถ้าไม่มี session ssid ต้อง redirect ไปหน้า /
         """
-        url = reverse('borrow_book', args=[self.book_python.id])
-        initial_stock = self.book_python.available_copies
+        response = self.client.get("/member/home/")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/")
 
-        # Member กดส่งคำร้องขอยืม
-        response = self.member_client.post(url)
-
-        # เช็กผลลัพธ์ว่าสร้าง Record สำเร็จ และสต็อกยังไม่ถูกตัดจนกว่าบรรณารักษ์จะอนุมัติ
-        self.assertEqual(BorrowingRecord.objects.count(), 1)
-        record = BorrowingRecord.objects.first()
-        self.assertEqual(record.Status, 'Pending')
-        self.assertIsNone(record.BookCopyID) # ยังไม่ผูกกับเล่มจริง
-        self.assertEqual(self.book_python.available_copies, initial_stock)
-        self.assertRedirects(response, reverse('search_books'))
+    def test_member_history_requires_login(self):
+        """
+        ถ้าไม่มี session ssid ต้อง redirect ไปหน้า /
+        """
+        response = self.client.get("/member/history/")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/")
 
     # ==========================================
-    # 🧪 TEST GROUP 3: Business Logic - Librarian
+    # 📚 Book Visibility Tests
     # ==========================================
-    def test_librarian_can_approve_borrow_and_reduces_available_copies(self):
+
+    def test_member_can_view_all_books(self):
         """
-        ทดสอบว่าบรรณารักษ์อนุมัติคำร้อง -> ตัดสต็อกสำเร็จ -> ผูกเล่มหนังสือจริงเข้ากับ Record
+        สมาชิกที่ login แล้วต้องเห็นหนังสือทั้งหมดในระบบ
         """
-        pending_record = BorrowingRecord.objects.create(
-            UserID=self.member, BookID=self.book_python, Status='Pending'
-        )
-        url = reverse('approve_borrow', args=[pending_record.id])
+        session = self.client.session
+        session["ssid"] = self.member_a.ssid
+        session.save()
 
-        # บรรณารักษ์กด Approve
-        self.lib_client.post(url)
-        
-        pending_record.refresh_from_db()
+        response = self.client.get("/member/home/")
+        self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(pending_record.Status, 'Active')
-        self.assertIsNotNone(pending_record.BookCopyID) # ต้องมีการแจกจ่ายเล่มจริงให้แล้ว
-        self.assertEqual(pending_record.BookCopyID.Status, 'Borrowed')
-        self.assertEqual(self.book_python.available_copies, 1) # สต็อกว่างต้องลดลง 1
+        books = response.context["book_list"]
+        self.assertEqual(books.count(), 2)
 
-    def test_librarian_can_reject_request(self):
+    def test_search_by_title(self):
         """
-        ทดสอบบรรณารักษ์กดปฏิเสธ -> คำร้องเป็น Rejected
+        ทดสอบค้นหาหนังสือด้วย title__icontains
         """
-        pending_record = BorrowingRecord.objects.create(
-            UserID=self.member, BookID=self.book_python, Status='Pending'
-        )
-        url = reverse('reject_borrow', args=[pending_record.id])
+        session = self.client.session
+        session["ssid"] = self.member_a.ssid
+        session.save()
 
-        # บรรณารักษ์กด Reject
-        self.lib_client.post(url)
-        pending_record.refresh_from_db()
+        response = self.client.get("/member/home/?q=Django")
+        books = response.context["book_list"]
 
-        self.assertEqual(pending_record.Status, 'Rejected')
-        self.assertEqual(self.book_python.available_copies, 2) # สต็อกต้องเท่าเดิม
+        self.assertEqual(books.count(), 1)
+        self.assertEqual(books.first().title, "Django for Beginners")
 
-    def test_librarian_can_process_return_and_restores_stock(self):
+    def test_search_by_category(self):
         """
-        ทดสอบรับคืนหนังสือ -> สถานะเปลี่ยนเป็น Returned -> เล่มหนังสือกลับมา Available
+        ทดสอบค้นหาหนังสือด้วย category__icontains
         """
-        # จำลองการยืมที่กำลัง Active อยู่
-        self.python_copy_1.Status = 'Borrowed'
-        self.python_copy_1.save()
-        
-        active_record = BorrowingRecord.objects.create(
-            UserID=self.member, 
-            BookID=self.book_python, 
-            BookCopyID=self.python_copy_1,
-            Status='Active',
-            DueDate=timezone.now() + timedelta(days=7)
-        )
-        url = reverse('return_book', args=[active_record.id])
+        session = self.client.session
+        session["ssid"] = self.member_a.ssid
+        session.save()
 
-        # บรรณารักษ์กดรับคืน
-        self.lib_client.post(url)
-        
-        active_record.refresh_from_db()
-        self.python_copy_1.refresh_from_db()
+        response = self.client.get("/member/home/?q=Technology")
+        books = response.context["book_list"]
 
-        self.assertEqual(active_record.Status, 'Returned')
-        self.assertIsNotNone(active_record.ReturnDate)
-        self.assertEqual(self.python_copy_1.Status, 'Available') # เล่มจริงกลับมาตีเข้าสต็อก
-        self.assertEqual(self.book_python.available_copies, 2) # สต็อกรวมกลับมาเต็ม 2 เล่ม
+        self.assertEqual(books.count(), 2)
+
+    # ==========================================
+    # 📖 Borrow Transaction Isolation
+    # ==========================================
+
+    def test_member_sees_only_own_transactions(self):
+        """
+        Member A ต้องไม่เห็น transaction ของ Member B เด็ดขาด
+        """
+        session = self.client.session
+        session["ssid"] = self.member_a.ssid
+        session.save()
+
+        response = self.client.get("/member/history/")
+        transactions = response.context["transactions"]
+
+        self.assertEqual(transactions.count(), 1)
+        self.assertEqual(transactions.first().member, self.member_a)
+
+    # ==========================================
+    # ⏳ Overdue Status Display
+    # ==========================================
+
+    def test_overdue_status_displayed_correctly(self):
+        """
+        ตรวจสอบว่า status=OVERDUE ถูกส่งไป template ตรงตาม DB
+        (Member Portal ไม่คำนวณใหม่)
+        """
+        session = self.client.session
+        session["ssid"] = self.member_b.ssid
+        session.save()
+
+        response = self.client.get("/member/history/")
+        transactions = response.context["transactions"]
+
+        self.assertEqual(transactions.count(), 1)
+        self.assertEqual(transactions.first().status, "OVERDUE")
+
+    # ==========================================
+    # 🎨 Template Usage Tests
+    # ==========================================
+
+    def test_member_home_uses_correct_template(self):
+        """
+        หน้า Member Home ต้องใช้ template member/home.html
+        """
+        session = self.client.session
+        session["ssid"] = self.member_a.ssid
+        session.save()
+
+        response = self.client.get("/member/home/")
+
+        self.assertTemplateUsed(response, "library_app/member/home.html")

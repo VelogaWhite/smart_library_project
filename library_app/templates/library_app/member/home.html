@@ -1,0 +1,149 @@
+{% extends "library_app/member/base_member.html" %}
+{% block content %}
+
+<!-- Header Section -->
+<div class="bg-white p-6 rounded-2xl shadow-sm mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+    <!-- Left: Title -->
+    <div>
+        <h2 class="text-3xl font-bold text-gray-800">
+            All Books
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">
+            Browse and search available books in the library
+        </p>
+    </div>
+
+    <!-- Right: Member Info -->
+    <div class="flex items-center gap-4">
+
+        <!-- Avatar -->
+        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+            {{ member.name|default:"U"|first|upper }}
+        </div>
+
+        <!-- Info -->
+        <div class="text-sm">
+            <div class="font-semibold text-gray-800">
+                Welcome, {{ member.name }}
+            </div>
+            <div class="text-gray-500">
+                SSID: {{ member.ssid }}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Search + Count -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+
+    <!-- Book Count -->
+    <div class="text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium w-fit">
+        {{ book_list.paginator.count }} Books Found
+    </div>
+
+    <!-- Search -->
+    <form method="GET" class="w-full md:w-1/2">
+        <div class="flex gap-3">
+            <input type="text"
+                   name="q"
+                   value="{{ request.GET.q|default_if_none:'' }}"
+                   placeholder="Search title or category..."
+                   class="w-full px-5 py-3 rounded-xl border focus:ring-2 focus:ring-blue-400 outline-none shadow-sm">
+
+            <button type="submit"
+                    class="bg-blue-600 text-white px-6 rounded-xl hover:bg-blue-700 transition shadow-sm">
+                Search
+            </button>
+
+            {% if request.GET.q %}
+            <a href="{% url 'member_home' %}"
+               class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-300 transition text-sm flex items-center">
+                Reset
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
+</div>
+
+
+{% if book_list %}
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+    {% for book in book_list %}
+    <div class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col justify-between">
+
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-1">
+                {{ book.title }}
+            </h3>
+
+            <p class="text-sm text-gray-500 mb-2">
+                {{ book.author }}
+            </p>
+
+            <p class="text-xs text-gray-400 mb-4">
+                {{ book.category }}
+            </p>
+        </div>
+
+        <!-- Status Badge -->
+        <div>
+            {% if book.status == "AVAILABLE" %}
+                <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
+                    <span class="w-2 h-2 bg-green-600 rounded-full"></span>
+                    Available
+                </span>
+
+            {% elif book.status == "BORROWED" %}
+                <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-full">
+                    <span class="w-2 h-2 bg-red-600 rounded-full"></span>
+                    Borrowed
+                </span>
+
+            {% else %}
+                <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">
+                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+                    Unknown
+                </span>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+
+
+<!-- Pagination -->
+<div class="flex justify-center mt-12 gap-3 text-sm">
+
+    {% if book_list.has_previous %}
+        <a href="?page={{ books_list.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+           class="px-4 py-2 bg-white shadow rounded-lg hover:bg-gray-100">
+            Previous
+        </a>
+    {% endif %}
+
+    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow">
+        {{ book_list.number }}
+    </span>
+
+    {% if book_list.has_next %}
+        <a href="?page={{ books_list.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+           class="px-4 py-2 bg-white shadow rounded-lg hover:bg-gray-100">
+            Next
+        </a>
+    {% endif %}
+
+</div>
+
+{% else %}
+<div class="bg-white p-10 rounded-2xl shadow text-center text-gray-500">
+    No books found.
+</div>
+{% endif %}
+
+{% endblock %}

@@ -5,6 +5,7 @@ from .forms import MemberRegistrationForm, BookForm
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 # ==========================================
 # Module 1: SSID-Based Entry
@@ -23,8 +24,8 @@ def index(request):
                 return redirect('admin_auth')
             else:
                 # ถ้าเป็น Member ให้ส่งไปหน้าโปรไฟล์ตัวเอง
-                request.session['logged_in_ssid'] = member.ssid # จำลองการ Login
-                return redirect('member_profile', ssid=member.ssid)
+                request.session['ssid'] = member.ssid
+                return redirect('member_home')
                 
         except Member.DoesNotExist:
             messages.error(request, 'SSID not found. กรุณาลองใหม่อีกครั้ง')
@@ -66,14 +67,62 @@ def admin_auth(request):
 
     return render(request, 'library_app/auth_admin.html', {'member': member})
 
+#==========================================
+# MODULE 2 : MEMBER PORTAL MODULE 
+#==========================================
 
 def member_profile(request, ssid):
     """ หน้าประวัติการยืมของ Member (/{ssid}/) """
     member = get_object_or_404(Member, ssid=ssid)
     return render(request, 'library_app/user_history.html', {'member': member})
 
+
+def member_home(request):
+
+    ssid = request.session.get("ssid")
+
+    if not ssid:
+        return redirect("index")
+
+    member = Member.objects.get(ssid=ssid)
+
+    books = Book.objects.all().order_by("book_id")
+
+    query = request.GET.get("q")
+    if query:
+        books = books.filter(
+            Q(title__icontains=query) |
+            Q(category__icontains=query)
+        )
+
+    context = {
+        "book_list": books,
+        "member": member
+    }
+
+    return render(request, "library_app/member/home.html", context)
+
+def my_history(request):
+
+    ssid = request.session.get("ssid")
+
+    if not ssid:
+        return redirect("index")
+
+    member = Member.objects.get(ssid=ssid)
+
+    transactions = BorrowTransaction.objects.filter(member=member)
+
+    return render(request, "library_app/member/history.html", {
+        "transactions": transactions
+    })
+
+def logout_view(request):
+    request.session.pop("ssid", None)
+    return redirect('index')
+
 # ==========================================
-# Module 2: User Management (Admin Only)
+# Module 3: User Management (Admin Only)
 # ==========================================
 def manage_users(request):
     """ หน้าแสดงรายชื่อและค้นหาสมาชิก """
@@ -135,7 +184,7 @@ def edit_user(request, ssid):
     return render(request, 'library_app/users/form.html', {'form': form, 'action': 'Edit', 'member': member})
 
 # ==========================================
-# Module 3: Book Management (Admin Only)
+# Module 4: Book Management (Admin Only)
 # ==========================================
 def manage_books(request):
     """ หน้าแสดงรายการหนังสือและค้นหา """
@@ -212,7 +261,7 @@ def delete_book(request, book_id):
     return redirect('manage_books')
 
 # ==========================================
-# Module 4: Borrow Creation (หน้าเคาน์เตอร์ยืม)
+# Module 5: Borrow Creation (หน้าเคาน์เตอร์ยืม)
 # ==========================================
 def borrow_counter(request):
     """ หน้าทำรายการยืมด้วยการสแกน SSID และ BookID """
@@ -261,7 +310,7 @@ def borrow_counter(request):
     return render(request, 'library_app/borrow/create_tx.html')
 
 # ==========================================
-# Module 5: Return Processing (หน้าเคาน์เตอร์รับคืน)
+# Module 6: Return Processing (หน้าเคาน์เตอร์รับคืน)
 # ==========================================
 def return_counter(request):
     """ หน้าค้นหาประวัติการยืมด้วย SSID และแสดงรายการที่ต้องคืน """
@@ -315,7 +364,7 @@ def process_return(request, tx_id):
     return redirect(f"/record/?ssid={tx.member.ssid}")
 
 # ==========================================
-# Module 6: Transaction History
+# Module 7: Transaction History
 # ==========================================
 def transaction_history(request):
     """ หน้าแสดงประวัติธุรกรรมทั้งหมด (ดูได้เฉพาะ Admin) """
@@ -347,7 +396,7 @@ def transaction_history(request):
 
 
 # ==========================================
-# Module 7: Admin Settings (Change Password)
+# Module 8: Admin Settings (Change Password)
 # ==========================================
 def admin_settings(request):
     """ หน้าหลักของ Settings (แสดงข้อมูลเบื้องต้น) """

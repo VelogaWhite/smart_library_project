@@ -1,0 +1,62 @@
+<!-- templates/library_app/member/base_member.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gradient-to-br from-gray-50 to-gray-200 min-h-screen flex flex-col">
+
+<!-- Navbar -->
+<nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+        <div class="flex items-center gap-3">
+            <div class="text-2xl">📚</div>
+            <h1 class="text-xl font-bold text-gray-800">Smart Library</h1>
+        </div>
+
+        <div class="flex items-center gap-8 text-sm font-medium">
+
+            <a href="/member/home/"
+               class="{% if request.path == '/member/home/' %}
+                        text-blue-600 border-b-2 border-blue-600 pb-1
+                      {% else %}
+                        text-gray-600 hover:text-blue-600
+                      {% endif %}">
+                Home
+            </a>
+
+            <a href="/member/history/"
+               class="{% if request.path == '/member/history/' %}
+                        text-blue-600 border-b-2 border-blue-600 pb-1
+                      {% else %}
+                        text-gray-600 hover:text-blue-600
+                      {% endif %}">
+                My History
+            </a>
+
+            <div class="text-gray-500">
+                {{ request.session.ssid }}
+            </div>
+
+            <a href="{% url 'logout' %}"
+               class="text-red-500 hover:text-red-700 transition">
+               Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<main class="flex-1 max-w-7xl mx-auto w-full px-6 py-10">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center text-xs text-gray-400 py-6">
+    Smart Library System © 2026
+</footer>
+
+</body>
+</html>
