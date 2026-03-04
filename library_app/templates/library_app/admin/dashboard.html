@@ -1,0 +1,452 @@
+{% extends "library_app/base_admin.html" %}
+{% load static %}
+
+{% block title %}Dashboard — Smart Library{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ─── Google Fonts ─────────────────────────────────────────── */
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  /* ─── CSS Variables ─────────────────────────────────────────── */
+  :root {
+    --ink:        #0f1117;
+    --paper:      #f5f0e8;
+    --cream:      #ede8dc;
+    --warm-mid:   #c9b99a;
+    --amber:      #d97706;
+    --amber-lt:   #fef3c7;
+    --teal:       #0d9488;
+    --teal-lt:    #ccfbf1;
+    --ruby:       #dc2626;
+    --ruby-lt:    #fee2e2;
+    --indigo:     #4338ca;
+    --indigo-lt:  #e0e7ff;
+    --card-shadow: 0 2px 12px rgba(15,17,23,.08);
+    --radius: 14px;
+  }
+
+  /* ─── Base Reset ─────────────────────────────────────────────── */
+  body {
+    background-color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+  }
+
+  /* ─── Page Header ────────────────────────────────────────────── */
+  .db-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .db-header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.1;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .db-header h1 span {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .db-header .timestamp {
+    font-size: 0.78rem;
+    color: #6b7280;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+
+  /* ─── Stat Cards ─────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: #ffffff;
+    border-radius: var(--radius);
+    padding: 1.4rem 1.6rem;
+    box-shadow: var(--card-shadow);
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease;
+    cursor: default;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(15,17,23,.13);
+  }
+
+  /* colour-coded accent stripe */
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .stat-card.members::before  { background: var(--indigo); }
+  .stat-card.books::before    { background: var(--teal); }
+  .stat-card.active::before   { background: var(--amber); }
+  .stat-card.overdue::before  { background: var(--ruby); }
+
+  .stat-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 0.3rem;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .stat-card.overdue .stat-value { color: var(--ruby); }
+
+  .stat-pill {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+
+  .members  .stat-pill { background: var(--indigo-lt); color: var(--indigo); }
+  .books    .stat-pill { background: var(--teal-lt);   color: var(--teal); }
+  .active   .stat-pill { background: var(--amber-lt);  color: var(--amber); }
+  .overdue  .stat-pill { background: var(--ruby-lt);   color: var(--ruby); }
+
+  /* ─── Section Heading ─────────────────────────────────────────── */
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--ink);
+  }
+
+  .section-heading .badge-alert {
+    background: var(--ruby);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── Overdue Table ───────────────────────────────────────────── */
+  .table-card {
+    background: #ffffff;
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .table-card table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table-card thead th {
+    background: var(--ink);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.85rem 1.1rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .table-card tbody tr {
+    border-bottom: 1px solid var(--cream);
+    transition: background .12s;
+  }
+
+  .table-card tbody tr:last-child { border-bottom: none; }
+
+  .table-card tbody tr:hover { background: #fffbf5; }
+
+  .table-card td {
+    padding: 0.9rem 1.1rem;
+    font-size: 0.85rem;
+    vertical-align: middle;
+  }
+
+  /* member avatar stub */
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--indigo-lt);
+    color: var(--indigo);
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .member-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .member-name  { font-weight: 600; font-size: 0.85rem; }
+  .member-ssid  { font-size: 0.72rem; color: #9ca3af; }
+
+  .book-title  { font-weight: 500; }
+  .book-id     { font-size: 0.72rem; color: #9ca3af; }
+
+  /* days-overdue chip */
+  .overdue-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--ruby-lt);
+    color: var(--ruby);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+
+  .overdue-chip.warn {
+    background: var(--amber-lt);
+    color: var(--amber);
+  }
+
+  /* contact links */
+  .contact-cell a {
+    display: block;
+    color: inherit;
+    font-size: 0.8rem;
+    text-decoration: none;
+  }
+
+  .contact-cell a:hover { text-decoration: underline; }
+
+  .contact-icon {
+    font-size: 0.9rem;
+    margin-right: 3px;
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+  }
+
+  .empty-state .empty-icon { font-size: 2.5rem; }
+  .empty-state p { margin-top: 0.5rem; font-size: 0.9rem; }
+
+  /* ─── Fine Badge ──────────────────────────────────────────────── */
+  .fine-badge {
+    background: var(--ruby-lt);
+    color: var(--ruby);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ─── Responsive ──────────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .table-card { overflow-x: auto; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ─── Fade-in Animation ───────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card { animation: fadeUp .4s ease both; }
+  .stat-card:nth-child(1) { animation-delay: .05s; }
+  .stat-card:nth-child(2) { animation-delay: .10s; }
+  .stat-card:nth-child(3) { animation-delay: .15s; }
+  .stat-card:nth-child(4) { animation-delay: .20s; }
+  .table-card             { animation: fadeUp .4s .25s ease both; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- ── Page Header ─────────────────────────────────── -->
+  <div class="db-header">
+    <h1>Library <span>Dashboard</span></h1>
+    <span class="timestamp" id="js-clock"></span>
+  </div>
+
+  <!-- ── Stats Cards ────────────────────────────────── -->
+  <div class="stats-grid">
+
+    <div class="stat-card members">
+      <span class="stat-icon">👥</span>
+      <div class="stat-label">Total Members</div>
+      <div class="stat-value">{{ total_members }}</div>
+      <span class="stat-pill">Registered</span>
+    </div>
+
+    <div class="stat-card books">
+      <span class="stat-icon">📚</span>
+      <div class="stat-label">Total Books</div>
+      <div class="stat-value">{{ total_books }}</div>
+      <span class="stat-pill">In System</span>
+    </div>
+
+    <div class="stat-card active">
+      <span class="stat-icon">📖</span>
+      <div class="stat-label">Active Borrows</div>
+      <div class="stat-value">{{ active_borrows }}</div>
+      <span class="stat-pill">Currently out</span>
+    </div>
+
+    <div class="stat-card overdue">
+      <span class="stat-icon">🚨</span>
+      <div class="stat-label">Overdue</div>
+      <div class="stat-value">{{ overdue_count }}</div>
+      <span class="stat-pill">Needs follow-up</span>
+    </div>
+
+  </div>
+
+  <!-- ── Overdue Alert Table ────────────────────────── -->
+  <div class="section-heading">
+    🚨 Overdue Alert
+    {% if overdue_count > 0 %}
+      <span class="badge-alert">{{ overdue_count }} รายการ</span>
+    {% endif %}
+  </div>
+
+  <div class="table-card">
+    {% if overdue_transactions %}
+    <table>
+      <thead>
+        <tr>
+          <th>สมาชิก</th>
+          <th>หนังสือ</th>
+          <th>กำหนดคืน</th>
+          <th>เกินกำหนด</th>
+          <th>ค่าปรับ</th>
+          <th>ติดต่อ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in overdue_transactions %}
+        {% with days_late=tx.due_date|timesince %}
+        <tr>
+
+          <!-- Member -->
+          <td>
+            <div class="member-cell">
+              <div class="avatar">
+                {{ tx.member.full_name|first|upper }}
+              </div>
+              <div>
+                <div class="member-name">{{ tx.member.full_name }}</div>
+                <div class="member-ssid">SSID {{ tx.member.ssid }}</div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Book -->
+          <td>
+            <div class="book-title">{{ tx.book.title }}</div>
+            <div class="book-id">#{{ tx.book.book_id }}</div>
+          </td>
+
+          <!-- Due Date -->
+          <td style="white-space:nowrap;">
+            {{ tx.due_date|date:"d M Y" }}
+          </td>
+
+          <!-- Days Late chip -->
+          <td>
+            <span class="overdue-chip">
+              ⏰ {{ tx.due_date|timesince }} ที่แล้ว
+            </span>
+          </td>
+
+          <!-- Fine -->
+          <td>
+            {% if tx.fine_amount > 0 %}
+              <span class="fine-badge">฿{{ tx.fine_amount }}</span>
+            {% else %}
+              <span style="color:#9ca3af; font-size:.8rem;">—</span>
+            {% endif %}
+          </td>
+
+          <!-- Contact -->
+          <td class="contact-cell">
+            <a href="mailto:{{ tx.member.email }}">
+              <span class="contact-icon">✉️</span>{{ tx.member.email }}
+            </a>
+            <a href="tel:{{ tx.member.phone_number }}">
+              <span class="contact-icon">📞</span>{{ tx.member.phone_number }}
+            </a>
+          </td>
+
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <p>ไม่มีหนังสือค้างส่ง ทุกอย่างเรียบร้อยดี!</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  // Live clock in header
+  (function () {
+    const el = document.getElementById('js-clock');
+    function tick() {
+      el.textContent = new Date().toLocaleString('th-TH', {
+        weekday: 'long', year: 'numeric',
+        month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
+{% endblock %}

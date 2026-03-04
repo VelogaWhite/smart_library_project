@@ -8,6 +8,7 @@ urlpatterns = [
     # --- Module 1: SSID-Based Entry ---
     path('', views.index, name='index'), # หน้าแรก
     path('auth/', views.admin_auth, name='admin_auth'), # หน้าใส่รหัสผ่าน Admin
+    path('dashboard/', views.admin_dashboard, name='admin_dashboard'), #หน้าdashboard ของ Admin
 
     # --- Member Portal ---
     path('member/home/', views.member_home, name='member_home'),

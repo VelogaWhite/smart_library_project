@@ -58,7 +58,7 @@ def admin_auth(request):
                 
                 # ชั่วคราว: แสดงข้อความแล้วส่งกลับหน้าแรกก่อน (เดี๋ยวเราค่อยเชื่อมไปหน้า /users)
                 messages.success(request, f'Welcome back, {member.full_name} (Admin)')
-                return redirect('index') 
+                return redirect('admin_dashboard') 
             else:
                 messages.error(request, 'รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่')
                 
@@ -432,3 +432,35 @@ def change_password(request):
             return redirect('admin_settings')
 
     return redirect('admin_settings')
+
+# ==========================================
+# Module 9: Admin Dashboard (สถิติภาพรวม)
+# ==========================================
+def admin_dashboard(request):
+    """ หน้า Dashboard สรุปสถิติและแจ้งเตือนหนังสือค้างส่ง """
+    if 'logged_in_admin_ssid' not in request.session:
+        return redirect('index')
+
+    # --- คำนวณ Stats Cards 4 กล่อง ---
+    total_members = Member.objects.filter(is_admin=False).count()
+    total_books   = Book.objects.count()
+    active_borrows  = BorrowTransaction.objects.filter(status='ACTIVE').count()
+    overdue_count   = BorrowTransaction.objects.filter(status='OVERDUE').count()
+
+    # --- ดึง Overdue Transactions พร้อมข้อมูลสมาชิก (select_related เพื่อกัน N+1) ---
+    overdue_transactions = (
+        BorrowTransaction.objects
+        .filter(status='OVERDUE')
+        .select_related('member', 'book')
+        .order_by('due_date')   # เรียงจากวันที่เกินนานที่สุดก่อน
+    )
+
+    context = {
+        'total_members':        total_members,
+        'total_books':          total_books,
+        'active_borrows':       active_borrows,
+        'overdue_count':        overdue_count,
+        'overdue_transactions': overdue_transactions,
+    }
+
+    return render(request, 'library_app/admin/dashboard.html', context)

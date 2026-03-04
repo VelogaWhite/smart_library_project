@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Panel{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-gray-100 min-h-screen">
 
@@ -16,6 +17,8 @@
             </div>
             
             <div class="hidden md:flex gap-6 items-center font-medium text-sm">
+                <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📊 Dashboard</a>
+
                 <a href="{% url 'manage_users' %}" class="{% if request.resolver_match.url_name == 'manage_users' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">👥 Users</a>
                 
                 <a href="{% url 'manage_books' %}" class="{% if request.resolver_match.url_name == 'manage_books' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📚 Books</a>
