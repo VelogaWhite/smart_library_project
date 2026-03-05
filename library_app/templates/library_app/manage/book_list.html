@@ -3,7 +3,7 @@
 {% block title %}Manage Books{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="max-w-7xl mx-auto px-4 py-8 w-full">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-800">📚 Manage Books</h2>
         <a href="{% url 'create_book' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow font-medium transition">+ Add New Book</a>
@@ -17,43 +17,55 @@
         {% endfor %}
     {% endif %}
 
-    <form method="get" class="mb-6 flex gap-2">
+    <form method="get" class="mb-6 flex gap-2 w-full">
         <input type="text" name="q" value="{{ query }}" placeholder="Search by Book ID, Title, or ISBN..." 
-            class="w-full md:w-1/3 px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            class="flex-1 px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
         <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Search</button>
-        {% if query %}<a href="{% url 'manage_books' %}" class="text-gray-500 px-4 py-2">Clear</a>{% endif %}
+        {% if query %}<a href="{% url 'manage_books' %}" class="text-gray-500 px-4 py-2 hidden sm:inline-block">Clear</a>{% endif %}
     </form>
 
-    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table class="w-full text-left">
-            <thead class="bg-gray-50 border-b text-gray-600 text-sm">
-                <tr>
-                    <th class="p-4">Book ID</th>
-                    <th class="p-4">Title</th>
-                    <th class="p-4">Author</th>
-                    <th class="p-4">Category</th>
-                    <th class="p-4">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for book in books %}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-4 font-mono font-medium text-blue-600">{{ book.book_id }}</td>
-                    <td class="p-4">
-                        <div class="font-medium text-gray-800">{{ book.title }}</div>
-                        <div class="text-xs text-gray-500">ISBN: {{ book.isbn }}</div>
-                    </td>
-                    <td class="p-4 text-gray-600">{{ book.author }}</td>
-                    <td class="p-4 text-gray-600">{{ book.category }}</td>
-                    <td class="p-4">
-                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">{{ book.status }}</span>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="p-8 text-center text-gray-400">No books found in the system.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- แก้ไขส่วนนี้: กล่องหลักมี overflow-hidden ส่วนด้านในทำ overflow-x-auto พร้อม min-w-max -->
+    <div class="bg-white rounded-xl shadow-sm border w-full overflow-hidden">
+        <div class="w-full overflow-x-auto">
+            <table class="w-full text-left whitespace-nowrap min-w-max">
+                <thead class="bg-gray-50 border-b text-gray-600 text-sm">
+                    <tr>
+                        <th class="p-4">Book ID</th>
+                        <th class="p-4">Title</th>
+                        <th class="p-4">Author</th>
+                        <th class="p-4">Category</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4 font-mono font-medium text-blue-600">{{ book.book_id }}</td>
+                        <td class="p-4">
+                            <div class="font-medium text-gray-800">{{ book.title }}</div>
+                            <div class="text-xs text-gray-500">ISBN: {{ book.isbn }}</div>
+                        </td>
+                        <td class="p-4 text-gray-600">{{ book.author }}</td>
+                        <td class="p-4 text-gray-600">{{ book.category }}</td>
+                        <td class="p-4">
+                            {% if book.status == 'Available' %}
+                                <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">{{ book.status }}</span>
+                            {% else %}
+                                <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">{{ book.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right">
+                            <a href="{% url 'edit_book' book.book_id %}" class="text-blue-500 hover:text-blue-700 font-medium text-sm mr-3">Edit</a>
+                            <a href="{% url 'delete_book' book.book_id %}" onclick="return confirm('Are you sure you want to delete this book?');" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="p-8 text-center text-gray-400">No books found in the system.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

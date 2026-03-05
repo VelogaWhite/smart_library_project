@@ -1,80 +1,76 @@
 import os
 import django
+from django.utils import timezone
+from datetime import timedelta
 
 # ตั้งค่า Environment ให้รู้จัก Django project
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
 django.setup()
 
-from library_app.models import Category, Book, User, BookCopy
-from django.contrib.auth.hashers import make_password
+from library_app.models import Member, Book, BorrowTransaction, AdminAuth
 
 def run():
     print("🗑️  Cleaning old data...")
-    # การลบ Category และ Book จะเป็นการลบข้อมูลลูก (BookCopy, BorrowingRecord) ทิ้งไปด้วย (Cascade)
-    Category.objects.all().delete()
+    BorrowTransaction.objects.all().delete()
     Book.objects.all().delete()
-    User.objects.filter(username__in=['sarah_lib', 'alex_mem']).delete()
+    AdminAuth.objects.all().delete()
+    Member.objects.all().delete()
 
-    print("📦 Creating Categories...")
-    cat_tech = Category.objects.create(CategoryName="Technology")
-    cat_sci = Category.objects.create(CategoryName="Science")
-    cat_fic = Category.objects.create(CategoryName="Fiction")
+    print("👥 Creating Admin & Members (V5.0 SSID)...")
+    # 1. สร้างบรรณารักษ์ (Admin)
+    admin = Member.objects.create(
+        ssid=90000001, 
+        full_name="Sarah Librarian", 
+        email="admin@lib.com", 
+        phone_number="0800000000", 
+        is_admin=True
+    )
+    admin_auth = AdminAuth(member=admin)
+    admin_auth.set_password("admin123")
+    admin_auth.save()
 
-    print("📚 Creating Books and Physical Copies (V4.0)...")
+    # 2. สร้างสมาชิกทั่วไป 3 คน
+    m1 = Member.objects.create(ssid=10000001, full_name="Alice Wonderland", email="alice@mem.com", phone_number="0811111111", is_admin=False)
+    m2 = Member.objects.create(ssid=10000002, full_name="Bob Builder", email="bob@mem.com", phone_number="0822222222", is_admin=False)
+    m3 = Member.objects.create(ssid=10000003, full_name="Charlie Brown", email="charlie@mem.com", phone_number="0833333333", is_admin=False)
+
+    print("📚 Creating 10 Books...")
     books_data = [
-        # (ชื่อเรื่อง, หมวดหมู่, ผู้แต่ง, ISBN, จำนวนเล่มที่จะสร้าง)
-        ("Python for Beginners", cat_tech, "John Doe", "978-0134076251", 3),
-        ("Clean Code", cat_tech, "Robert C. Martin", "978-0132350884", 2),
-        ("Introduction to Physics", cat_sci, "Halliday", "978-1118230718", 2),
-        ("The Great Gatsby", cat_fic, "F. Scott Fitzgerald", "978-0743273565", 1),
+        (10001, "Python Crash Course", "Eric Matthes", "9781593279288", "Technology", "A1", "Available"),
+        (10002, "Clean Code", "Robert C. Martin", "9780132350884", "Technology", "A1", "Borrowed"),
+        (10003, "The Pragmatic Programmer", "Andrew Hunt", "9780135957059", "Technology", "A2", "Available"),
+        (10004, "Design Patterns", "Erich Gamma", "9780201633610", "Technology", "A2", "Borrowed"),
+        (10005, "Introduction to Algorithms", "Thomas H. Cormen", "9780262033848", "Science", "B1", "Available"),
+        (10006, "Sapiens", "Yuval Noah Harari", "9780062316097", "History", "C1", "Available"),
+        (10007, "1984", "George Orwell", "9780451524935", "Fiction", "D1", "Returned"),
+        (10008, "To Kill a Mockingbird", "Harper Lee", "9780060935467", "Fiction", "D1", "Available"),
+        (10009, "The Great Gatsby", "F. Scott Fitzgerald", "9780743273565", "Fiction", "D2", "Available"),
+        (10010, "Atomic Habits", "James Clear", "9780735211292", "Self-Help", "E1", "Available"),
     ]
+    books = []
+    for b_id, title, author, isbn, cat, loc, status in books_data:
+        # หาก status เป็น Borrowed/Returned ให้ตั้งเป็น Borrowed เพื่อให้สมจริงใน Transactions
+        actual_status = 'Borrowed' if status in ['Borrowed', 'Returned'] else 'Available'
+        books.append(Book.objects.create(book_id=b_id, title=title, author=author, isbn=isbn, category=cat, location=loc, status=actual_status))
 
-    barcode_counter = 1000 # ตัวแปรช่วยรันเลขบาร์โค้ด
+    print("🔄 Creating Transactions (Active, Returned, Overdue)...")
+    now = timezone.now()
 
-    for title, cat, author, isbn, copies in books_data:
-        # 1. สร้าง Book (ชื่อเรื่อง / Title Level)
-        new_book = Book.objects.create(
-            Title=title,
-            CategoryID=cat,
-            AuthorName=author,
-            ISBN=isbn
-            # ลบฟิลด์ TotalCopies/AvailableCopies ออกแล้ว
-        )
-        
-        # 2. สร้าง BookCopy (เล่มหนังสือจริง / Item Level) ตามจำนวน copies ที่กำหนด
-        for _ in range(copies):
-            # สร้าง Barcode เช่น BC-6251-1000
-            barcode_str = f"BC-{isbn[-4:]}-{barcode_counter}"
-            BookCopy.objects.create(
-                BookID=new_book,
-                Barcode=barcode_str,
-                Status='Available'
-            )
-            barcode_counter += 1
-
-    print("👥 Creating Users...")
-    # Librarian Account
-    if not User.objects.filter(username='sarah_lib').exists():
-        User.objects.create(
-            username='sarah_lib',
-            password=make_password('password123'),
-            Role='Librarian',
-            FullName='Sarah Connor (Librarian)',
-            email='sarah@lib.com'
-        )
+    # ยืมปกติ (ACTIVE) - m1 ยืม Clean Code
+    BorrowTransaction.objects.create(member=m1, book=books[1], due_date=now + timedelta(days=5), status='ACTIVE')
     
-    # Member Account
-    if not User.objects.filter(username='alex_mem').exists():
-        User.objects.create(
-            username='alex_mem',
-            password=make_password('password123'),
-            Role='Member',
-            FullName='Alex Murphy (Member)',
-            email='alex@mem.com'
-        )
+    # เกินกำหนด (OVERDUE) เพื่อให้กราฟิก Dashboard โชว์ - m2 ยืม Design Patterns
+    BorrowTransaction.objects.create(member=m2, book=books[3], due_date=now - timedelta(days=3), fine_amount=30.00, status='OVERDUE')
+    
+    # คืนแล้ว (RETURNED) - m3 ยืม 1984 
+    tx_returned = BorrowTransaction.objects.create(member=m3, book=books[6], due_date=now - timedelta(days=7), returned_at=now - timedelta(days=5), status='RETURNED')
+    # ปรับสถานะหนังสือที่คืนแล้วกลับเป็น Available
+    tx_returned.book.status = 'Available'
+    tx_returned.book.save()
 
-    print("✅ Mock Data Generation Completed for V4.0!")
-    print(f"📊 Summary: {Book.objects.count()} Books, {BookCopy.objects.count()} Physical Copies, 2 Users.")
+    print("✅ Mock Data Generated Successfully!")
+    print("👉 For Admin Login: SSID = 90000001, Password = admin123")
+    print("👉 For Member Login: SSID = 10000001")
 
 if __name__ == '__main__':
     run()

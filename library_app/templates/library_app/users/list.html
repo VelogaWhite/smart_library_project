@@ -3,10 +3,10 @@
 {% block title %}Manage Users{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="max-w-6xl mx-auto px-4 py-8 w-full">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-800">👥 Manage Members</h2>
-        <a href="{% url 'create_user' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow font-medium transition">+ Add New Member</a>
+        <a href="{% url 'create_user' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow font-medium transition">+ Add Member</a>
     </div>
 
     {% if messages %}
@@ -17,48 +17,51 @@
         {% endfor %}
     {% endif %}
 
-    <form method="get" action="{% url 'manage_users' %}" class="mb-6 flex gap-2">
-        <input type="number" name="q" value="{{ query }}" placeholder="Search by SSID..." class="w-full md:w-1/3 px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+    <form method="get" action="{% url 'manage_users' %}" class="mb-6 flex gap-2 w-full">
+        <input type="number" name="q" value="{{ query }}" placeholder="Search by SSID..." class="flex-1 px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
         <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Search</button>
-        {% if query %}<a href="{% url 'manage_users' %}" class="text-gray-500 px-4 py-2">Clear</a>{% endif %}
+        {% if query %}<a href="{% url 'manage_users' %}" class="text-gray-500 px-4 py-2 hidden sm:inline-block">Clear</a>{% endif %}
     </form>
 
-    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table class="w-full text-left">
-            <thead class="bg-gray-50 border-b text-gray-600 text-sm">
-                <tr>
-                    <th class="p-4">SSID</th>
-                    <th class="p-4">Full Name</th>
-                    <th class="p-4">Email / Phone</th>
-                    <th class="p-4">Role</th>
-                    <th class="p-4 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for member in members %}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-4 font-mono font-medium text-blue-600">{{ member.ssid }}</td>
-                    <td class="p-4 font-medium text-gray-800">{{ member.full_name }}</td>
-                    <td class="p-4 text-gray-500 text-sm">
-                        <div>{{ member.email }}</div>
-                        <div>{{ member.phone_number }}</div>
-                    </td>
-                    <td class="p-4">
-                        {% if member.is_admin %}
-                            <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">Admin</span>
-                        {% else %}
-                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Member</span>
-                        {% endif %}
-                    </td>
-                    <td class="p-4 text-right">
-                        <a href="{% url 'edit_user' member.ssid %}" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="p-8 text-center text-gray-400">No members found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- แก้ไขส่วนตารางให้ Scroll ได้สมบูรณ์บนมือถือ -->
+    <div class="bg-white rounded-xl shadow-sm border w-full overflow-hidden">
+        <div class="w-full overflow-x-auto">
+            <table class="w-full text-left whitespace-nowrap min-w-max">
+                <thead class="bg-gray-50 border-b text-gray-600 text-sm">
+                    <tr>
+                        <th class="p-4">SSID</th>
+                        <th class="p-4">Full Name</th>
+                        <th class="p-4">Email / Phone</th>
+                        <th class="p-4">Role</th>
+                        <th class="p-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4 font-mono font-medium text-blue-600">{{ member.ssid }}</td>
+                        <td class="p-4 font-medium text-gray-800">{{ member.full_name }}</td>
+                        <td class="p-4 text-gray-500 text-sm">
+                            <div>{{ member.email }}</div>
+                            <div>{{ member.phone_number }}</div>
+                        </td>
+                        <td class="p-4">
+                            {% if member.is_admin %}
+                                <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">Admin</span>
+                            {% else %}
+                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Member</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right">
+                            <a href="{% url 'edit_user' member.ssid %}" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="p-8 text-center text-gray-400">No members found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
