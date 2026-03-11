@@ -1,64 +1,82 @@
 {% extends "library_app/member/base_member.html" %}
 {% block content %}
 
-<h2 class="text-3xl font-bold text-gray-800 mb-8">
-    My Borrow History
-</h2>
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <h2 class="text-3xl font-bold text-gray-800">
+        {% if view_tab == 'history' %}
+            🕰️ Past History
+        {% else %}
+            📖 Currently Borrowing
+        {% endif %}
+    </h2>
+
+    <div class="flex bg-gray-100 p-1 rounded-lg w-fit">
+        <a href="?tab=active" 
+           class="px-6 py-2 rounded-md text-sm font-semibold transition 
+           {% if view_tab != 'history' %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+            กำลังยืมอยู่
+        </a>
+        <a href="?tab=history" 
+           class="px-6 py-2 rounded-md text-sm font-semibold transition 
+           {% if view_tab == 'history' %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+            ประวัติการยืม
+        </a>
+    </div>
+</div>
 
 {% if transactions %}
 <div class="bg-white rounded-2xl shadow overflow-hidden">
-
     <table class="min-w-full text-sm">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="px-6 py-4 text-left">Book</th>
-                <th class="px-6 py-4 text-left">Due Date</th>
-                <th class="px-6 py-4 text-left">Status</th>
+                <th class="px-6 py-4 text-left text-gray-600">Book</th>
+                {% if view_tab == 'history' %}
+                    <th class="px-6 py-4 text-left text-gray-600">Returned Date</th>
+                {% else %}
+                    <th class="px-6 py-4 text-left text-gray-600">Due Date</th>
+                {% endif %}
+                <th class="px-6 py-4 text-left text-gray-600">Status</th>
             </tr>
         </thead>
-
         <tbody class="divide-y">
-
         {% for t in transactions %}
-            <tr class="hover:bg-gray-50 transition
-                       {% if t.status == 'OVERDUE' %}
-                           bg-red-50
-                       {% endif %}">
-
+            <tr class="hover:bg-gray-50 transition {% if t.status == 'OVERDUE' %}bg-red-50{% endif %}">
+                
                 <td class="px-6 py-4 font-medium text-gray-800">
                     {{ t.book.title }}
                 </td>
 
                 <td class="px-6 py-4 text-gray-500">
-                    {{ t.due_date|date:"M d, Y" }}
+                    {% if view_tab == 'history' %}
+                        {{ t.returned_at|date:"M d, Y" }}
+                    {% else %}
+                        {{ t.due_date|date:"M d, Y" }}
+                    {% endif %}
                 </td>
 
                 <td class="px-6 py-4">
                     {% if t.status == "OVERDUE" %}
-                        <span class="px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-full">
-                            Overdue
-                        </span>
+                        <span class="px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-full">Overdue</span>
                     {% elif t.status == "ACTIVE" %}
-                        <span class="px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded-full">
-                            Borrowed
-                        </span>
+                        <span class="px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded-full">Borrowed</span>
                     {% else %}
-                        <span class="px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
-                            Returned
-                        </span>
+                        <span class="px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">Returned</span>
                     {% endif %}
                 </td>
 
             </tr>
         {% endfor %}
-
         </tbody>
     </table>
 </div>
 
 {% else %}
 <div class="bg-white p-10 rounded-2xl shadow text-center text-gray-500">
-    No borrowing history found.
+    {% if view_tab == 'history' %}
+        ไม่มีประวัติการยืมหนังสือในอดีต
+    {% else %}
+        คุณไม่ได้กำลังยืมหนังสือเล่มใดอยู่ในขณะนี้ 📭
+    {% endif %}
 </div>
 {% endif %}
 

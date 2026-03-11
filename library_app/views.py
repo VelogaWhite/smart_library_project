@@ -103,18 +103,26 @@ def member_home(request):
     return render(request, "library_app/member/home.html", context)
 
 def my_history(request):
-
     ssid = request.session.get("ssid")
 
     if not ssid:
         return redirect("index")
 
     member = Member.objects.get(ssid=ssid)
+    
+    # รับค่าจาก URL ว่าผู้ใช้ต้องการดูหน้าไหน (ค่าเริ่มต้นคือ 'active')
+    view_tab = request.GET.get('tab', 'active')
 
-    transactions = BorrowTransaction.objects.filter(member=member)
+    if view_tab == 'history':
+        # ดึงเฉพาะรายการที่คืนแล้ว
+        transactions = BorrowTransaction.objects.filter(member=member, status='RETURNED').order_by('-returned_at')
+    else:
+        # ดึงรายการที่กำลังยืม หรือ เลยกำหนด (ไม่เอาที่คืนแล้ว)
+        transactions = BorrowTransaction.objects.filter(member=member).exclude(status='RETURNED').order_by('due_date')
 
     return render(request, "library_app/member/history.html", {
-        "transactions": transactions
+        "transactions": transactions,
+        "view_tab": view_tab
     })
 
 def logout_view(request):

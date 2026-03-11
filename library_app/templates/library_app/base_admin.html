@@ -27,7 +27,7 @@
                     <a href="{% url 'manage_books' %}" class="{% if request.resolver_match.url_name == 'manage_books' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📚 Books</a>
                     <a href="{% url 'borrow_counter' %}" class="{% if request.resolver_match.url_name == 'borrow_counter' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📗 Borrow</a>
                     <a href="{% url 'return_counter' %}" class="{% if request.resolver_match.url_name == 'return_counter' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📥 Record</a>
-                    <a href="{% url 'transaction_history' %}" class="{% if request.resolver_match.url_name == 'transaction_history' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📊 Transaction</a>
+                    <a href="{% url 'transaction_history' %}" class="{% if request.resolver_match.url_name == 'transaction_history' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">📊 History</a>
                     <a href="{% url 'admin_settings' %}" class="{% if request.resolver_match.url_name == 'admin_settings' %}text-white border-b-2 border-blue-400 pb-1{% else %}text-gray-400 hover:text-white transition{% endif %}">⚙️ Settings</a>
                     <a href="{% url 'index' %}" class="bg-red-500 hover:bg-red-600 px-4 py-1.5 rounded-lg shadow transition ml-4">Logout</a>
                 </div>
@@ -49,7 +49,7 @@
                 <a href="{% url 'manage_books' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'manage_books' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">📚 Books</a>
                 <a href="{% url 'borrow_counter' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'borrow_counter' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">📗 Borrow</a>
                 <a href="{% url 'return_counter' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'return_counter' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">📥 Record</a>
-                <a href="{% url 'transaction_history' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'transaction_history' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">📊 Transaction</a>
+                <a href="{% url 'transaction_history' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'transaction_history' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">📊 History</a>
                 <a href="{% url 'admin_settings' %}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.resolver_match.url_name == 'admin_settings' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">⚙️ Settings</a>
                 <a href="{% url 'index' %}" class="block px-3 py-2 mt-4 rounded-md text-base font-medium bg-red-500 hover:bg-red-600 text-white text-center">Logout</a>
             </div>
