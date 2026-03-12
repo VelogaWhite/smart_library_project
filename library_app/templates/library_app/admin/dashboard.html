@@ -4,6 +4,9 @@
 {% block title %}Dashboard — Smart Library{% endblock %}
 
 {% block extra_head %}
+<!-- ดึง Script Plotly มาใช้สำหรับแสดงกราฟ -->
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
 <style>
   /* ─── Google Fonts ─────────────────────────────────────────── */
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -138,6 +141,28 @@
   .books    .stat-pill { background: var(--teal-lt);   color: var(--teal); }
   .active   .stat-pill { background: var(--amber-lt);  color: var(--amber); }
   .overdue  .stat-pill { background: var(--ruby-lt);   color: var(--ruby); }
+
+  /* ─── Data Visualization Graphs ─────────────────────────────── */
+  .graphs-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .graph-card {
+    background: #ffffff;
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    padding: 1rem;
+    overflow: hidden;
+  }
+
+  @media (max-width: 1024px) {
+    .graphs-container {
+      grid-template-columns: 1fr;
+    }
+  }
 
   /* ─── Section Heading ─────────────────────────────────────────── */
   .section-heading {
@@ -311,7 +336,6 @@
 
   <!-- ── Stats Cards ────────────────────────────────── -->
   <div class="stats-grid">
-
     <div class="stat-card members">
       <span class="stat-icon">👥</span>
       <div class="stat-label">Total Members</div>
@@ -339,18 +363,45 @@
       <div class="stat-value">{{ overdue_count }}</div>
       <span class="stat-pill">Needs follow-up</span>
     </div>
-
   </div>
 
+  <!-- ── Data Visualization Section ─────────────────── -->
+  <div class="section-heading mt-8">
+    📊 Library Analytics (Mock Data)
+  </div>
+
+  <div class="graphs-container">
+    <!-- 1. กราฟคนเข้าต่อวัน -->
+    <div class="graph-card">
+      {{ graph1_html|safe }}
+    </div>
+
+    <!-- 2. กราฟหมวดหมู่หนังสือ -->
+    <div class="graph-card">
+      {{ graph2_html|safe }}
+    </div>
+
+    <!-- 3.1 กราฟระยะเวลาการยืม (แท่ง) -->
+    <div class="graph-card">
+      {{ graph3_bar_html|safe }}
+    </div>
+
+    <!-- 3.2 กราฟระยะเวลาการยืม (โดนัท) -->
+    <div class="graph-card">
+      {{ graph3_pie_html|safe }}
+    </div>
+  </div>
+
+
   <!-- ── Overdue Alert Table ────────────────────────── -->
-  <div class="section-heading">
+  <div class="section-heading mt-8">
     🚨 Overdue Alert
     {% if overdue_count > 0 %}
       <span class="badge-alert">{{ overdue_count }} รายการ</span>
     {% endif %}
   </div>
 
-  <div class="table-card">
+  <div class="table-card mb-8">
     {% if overdue_transactions %}
     <table>
       <thead>
