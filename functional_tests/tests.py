@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
-from library_app.models import Member, Book, BorrowTransaction, AdminAuth
+from library_app.models import Member, Book, BorrowTransaction
 
 class TypicalDaySystemTestV5(TestCase):
     """
@@ -23,7 +23,7 @@ class TypicalDaySystemTestV5(TestCase):
         )
         # รหัสผ่านสำหรับ Admin
         cls.admin_password = 'adminpassword123'
-        cls.admin_auth = AdminAuth.objects.create(member=cls.admin_user)
+        cls.admin_auth = Member.objects.create(member=cls.admin_user)
         cls.admin_auth.set_password(cls.admin_password)
         cls.admin_auth.save()
 

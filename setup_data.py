@@ -7,32 +7,38 @@ from datetime import timedelta
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
 django.setup()
 
-from library_app.models import Member, Book, BorrowTransaction, AdminAuth
+from library_app.models import Member, Book, BorrowTransaction
 
 def run():
     print("🗑️  Cleaning old data...")
     BorrowTransaction.objects.all().delete()
     Book.objects.all().delete()
-    AdminAuth.objects.all().delete()
     Member.objects.all().delete()
 
-    print("👥 Creating Admin & Members (V5.0 SSID)...")
+    print("👥 Creating Admin & Members (V5.1 SSID & Passwords)...")
     # 1. สร้างบรรณารักษ์ (Admin)
-    admin = Member.objects.create(
+    admin = Member(
         ssid=90000001, 
         full_name="Sarah Librarian", 
         email="admin@lib.com", 
         phone_number="0800000000", 
         is_admin=True
     )
-    admin_auth = AdminAuth(member=admin)
-    admin_auth.set_password("admin123")
-    admin_auth.save()
+    admin.set_password("admin123") # เซตรหัสผ่านในโมเดล Member โดยตรงตาม Schema ใหม่
+    admin.save()
 
-    # 2. สร้างสมาชิกทั่วไป 3 คน
-    m1 = Member.objects.create(ssid=10000001, full_name="Alice Wonderland", email="alice@mem.com", phone_number="0811111111", is_admin=False)
-    m2 = Member.objects.create(ssid=10000002, full_name="Bob Builder", email="bob@mem.com", phone_number="0822222222", is_admin=False)
-    m3 = Member.objects.create(ssid=10000003, full_name="Charlie Brown", email="charlie@mem.com", phone_number="0833333333", is_admin=False)
+    # 2. สร้างสมาชิกทั่วไป 3 คน (เพิ่มรหัสผ่าน Default ให้ด้วย)
+    m1 = Member(ssid=10000001, full_name="Alice Wonderland", email="alice@mem.com", phone_number="0811111111", is_admin=False)
+    m1.set_password("member123")
+    m1.save()
+    
+    m2 = Member(ssid=10000002, full_name="Bob Builder", email="bob@mem.com", phone_number="0822222222", is_admin=False)
+    m2.set_password("member123")
+    m2.save()
+    
+    m3 = Member(ssid=10000003, full_name="Charlie Brown", email="charlie@mem.com", phone_number="0833333333", is_admin=False)
+    m3.set_password("member123")
+    m3.save()
 
     print("📚 Creating 10 Books...")
     books_data = [
@@ -70,7 +76,7 @@ def run():
 
     print("✅ Mock Data Generated Successfully!")
     print("👉 For Admin Login: SSID = 90000001, Password = admin123")
-    print("👉 For Member Login: SSID = 10000001")
+    print("👉 For Member Login: SSID = 10000001, Password = member123")
 
 if __name__ == '__main__':
     run()

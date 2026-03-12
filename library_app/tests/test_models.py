@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from library_app.models import Member, Book, BorrowTransaction, AdminAuth
+from library_app.models import Member, Book, BorrowTransaction
 
 class LibraryModelsTestV5(TestCase):
     @classmethod
@@ -23,7 +23,7 @@ class LibraryModelsTestV5(TestCase):
             phone_number='0899999999',
             is_admin=True
         )
-        cls.admin_auth = AdminAuth(member=cls.admin)
+        cls.admin_auth = Member(member=cls.admin)
         cls.admin_auth.set_password('admin123')
         cls.admin_auth.save()
 
